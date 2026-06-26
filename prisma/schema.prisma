@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Region {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users  User[]
+  venues Venue[]
+
+  @@map("regions")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      String   @default("permitter")
+  regionId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  region     Region      @relation(fields: [regionId], references: [id])
+  permitters Permitter[] @relation("PermitterUser")
+  spgEvents  Permitter[] @relation("SPGUser")
+
+  @@map("users")
+}
+
+model Venue {
+  id        String   @id @default(cuid())
+  name      String
+  kota      String
+  alamat    String
+  picVenue  String
+  regionId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  region     Region      @relation(fields: [regionId], references: [id])
+  permitters Permitter[]
+
+  @@unique([name, regionId])
+  @@map("venues")
+}
+
+model Permitter {
+  id          String   @id @default(cuid())
+  permitterId String
+  spgId       String
+  venueId     String
+  eventDate   DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  permitter User              @relation("PermitterUser", fields: [permitterId], references: [id])
+  spg       User              @relation("SPGUser", fields: [spgId], references: [id])
+  venue     Venue             @relation(fields: [venueId], references: [id])
+  schools   PermitterSchool[]
+
+  @@unique([spgId, eventDate])
+  @@unique([venueId, eventDate])
+  @@map("permitters")
+}
+
+model PermitterSchool {
+  id          String   @id @default(cuid())
+  permitterId String
+  name        String
+  order       Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  permitter Permitter @relation(fields: [permitterId], references: [id], onDelete: Cascade)
+
+  @@unique([permitterId, order])
+  @@map("permitter_schools")
+}
