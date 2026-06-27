@@ -16,13 +16,14 @@ const rolePermissions: Record<Role, readonly string[]> = {
   [ROLES.ADMIN]: [WILDCARD],
   [ROLES.PERMITTER]: [
     "venues.read",
+    "permitters.read",
     "permitters.create",
     "permitters.update",
     "events.create",
     "events.update",
   ],
   [ROLES.SPG]: ["events.read", "transactions.create"],
-  [ROLES.SUPERVISOR]: ["reports.read", "events.read"],
+  [ROLES.SUPERVISOR]: ["reports.read", "events.read", "permitters.read"],
 };
 
 /**

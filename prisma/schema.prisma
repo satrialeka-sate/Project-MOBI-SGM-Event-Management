@@ -58,6 +58,7 @@ model Permitter {
   spgId       String
   venueId     String
   eventDate   DateTime
+  status      String   @default("active")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -72,12 +73,16 @@ model Permitter {
 }
 
 model PermitterSchool {
-  id          String   @id @default(cuid())
-  permitterId String
-  name        String
-  order       Int
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String   @id @default(cuid())
+  permitterId   String
+  name          String
+  schoolAddress String
+  totalStudents Int
+  picName       String
+  picPhone      String
+  order         Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   permitter Permitter @relation(fields: [permitterId], references: [id], onDelete: Cascade)
 
