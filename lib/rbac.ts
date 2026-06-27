@@ -20,9 +20,9 @@ const rolePermissions: Record<Role, readonly string[]> = {
     "permitters.create",
     "permitters.update",
     "events.create",
-    "events.update",
+    "events.read",
   ],
-  [ROLES.SPG]: ["events.read", "transactions.create"],
+  [ROLES.SPG]: ["events.read", "events.update", "transactions.create"],
   [ROLES.SUPERVISOR]: ["reports.read", "events.read", "permitters.read"],
 };
 

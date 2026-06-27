@@ -52,6 +52,13 @@ model Venue {
   @@map("venues")
 }
 
+enum EventStatus {
+  SCHEDULED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
 model Permitter {
   id          String   @id @default(cuid())
   permitterId String
@@ -66,10 +73,31 @@ model Permitter {
   spg       User              @relation("SPGUser", fields: [spgId], references: [id])
   venue     Venue             @relation(fields: [venueId], references: [id])
   schools   PermitterSchool[]
+  event     Event?
 
   @@unique([spgId, eventDate])
   @@unique([venueId, eventDate])
   @@map("permitters")
+}
+
+model Event {
+  id              String      @id @default(cuid())
+  permitterId     String      @unique
+  startTime       DateTime?
+  endTime         DateTime?
+  actualStartTime DateTime?
+  actualEndTime   DateTime?
+  startedById     String?
+  completedById   String?
+  notes           String?
+  photoUrl        String?
+  status          EventStatus @default(SCHEDULED)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  permitter Permitter @relation(fields: [permitterId], references: [id])
+
+  @@map("events")
 }
 
 model PermitterSchool {
