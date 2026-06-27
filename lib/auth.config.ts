@@ -1,4 +1,5 @@
 import type { NextAuthConfig } from "next-auth";
+import { ROLES } from "@/constants/roles";
 
 export const authConfig = {
   pages: {
@@ -22,10 +23,10 @@ export const authConfig = {
 
       // Role-based access control for dashboard sections
       const roleAccess: Record<string, string[]> = {
-        "/dashboard/admin": ["ADMIN"],
-        "/dashboard/permitter": ["ADMIN", "PERMITTER"],
-        "/dashboard/spg": ["ADMIN", "SPG"],
-        "/dashboard/supervisor": ["ADMIN", "SUPERVISOR"],
+        "/dashboard/admin": [ROLES.ADMIN],
+        "/dashboard/permitter": [ROLES.ADMIN, ROLES.PERMITTER],
+        "/dashboard/spg": [ROLES.ADMIN, ROLES.SPG],
+        "/dashboard/supervisor": [ROLES.ADMIN, ROLES.SUPERVISOR],
       };
 
       for (const [path, allowedRoles] of Object.entries(roleAccess)) {
