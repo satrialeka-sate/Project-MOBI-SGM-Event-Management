@@ -14,10 +14,13 @@ export interface PermitterResponse {
   permitterName: string;
   spgId: string;
   spgName: string;
-  venueId: string;
-  venueName: string;
   regionId: string;
   regionName: string;
+  cycle: string;
+  venueName: string;
+  venueCity: string;
+  venueAddress: string;
+  venuePIC: string;
   eventDate: Date;
   status: string;
   schools: SchoolResponse[];
@@ -36,7 +39,12 @@ export interface CreateSchoolInput {
 export interface CreatePermitterInput {
   permitterId: string;
   spgId: string;
-  venueId: string;
+  regionId: string;
+  cycle: string;
+  venueName: string;
+  venueCity: string;
+  venueAddress: string;
+  venuePIC: string;
   eventDate: Date;
   status?: string;
   schools: CreateSchoolInput[];
@@ -53,7 +61,12 @@ export interface UpdateSchoolInput {
 export interface UpdatePermitterInput {
   permitterId?: string;
   spgId?: string;
-  venueId?: string;
+  regionId?: string;
+  cycle?: string;
+  venueName?: string;
+  venueCity?: string;
+  venueAddress?: string;
+  venuePIC?: string;
   eventDate?: Date;
   status?: string;
   schools?: CreateSchoolInput[];
@@ -63,7 +76,7 @@ export interface PermitterQueryParams {
   page?: number;
   limit?: number;
   search?: string;
-  venueId?: string;
+  regionId?: string;
   userId?: string;
   date?: Date;
   status?: string;

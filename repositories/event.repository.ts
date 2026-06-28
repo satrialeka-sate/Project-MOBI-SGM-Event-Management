@@ -2,6 +2,17 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import type { CreateEventInput, UpdateEventInput, EventQueryParams } from "@/types/event";
 
+const eventPermitterInclude = {
+  permitter: { select: { id: true, name: true } },
+  spg: { select: { id: true, name: true } },
+  region: { select: { id: true, name: true } },
+  schools: {
+    orderBy: { order: "asc" as const },
+  },
+} satisfies Prisma.PermitterInclude;
+
+type PermitterForEvent = Prisma.PermitterGetPayload<{ include: typeof eventPermitterInclude }>;
+
 interface FindAllResult {
   events: Array<{
     id: string;
@@ -17,30 +28,7 @@ interface FindAllResult {
     status: string;
     createdAt: Date;
     updatedAt: Date;
-    permitter: {
-      id: string;
-      permitterId: string;
-      spgId: string;
-      venueId: string;
-      eventDate: Date;
-      permitter: { id: string; name: string };
-      spg: { id: string; name: string };
-      venue: {
-        id: string;
-        name: string;
-        regionId: string;
-        region: { name: string };
-      };
-      schools: Array<{
-        id: string;
-        name: string;
-        schoolAddress: string;
-        totalStudents: number;
-        picName: string;
-        picPhone: string;
-        order: number;
-      }>;
-    };
+    permitter: PermitterForEvent;
   }>;
   total: number;
 }
@@ -52,7 +40,6 @@ export const eventRepository = {
       limit = 10,
       search,
       status,
-      venueId,
       regionId,
       permitterId,
       spgId,
@@ -66,7 +53,8 @@ export const eventRepository = {
     if (search) {
       permitterFilter = {
         OR: [
-          { venue: { name: { contains: search, mode: "insensitive" } } },
+          { venueName: { contains: search, mode: "insensitive" } },
+          { venueCity: { contains: search, mode: "insensitive" } },
           { permitter: { name: { contains: search, mode: "insensitive" } } },
           { spg: { name: { contains: search, mode: "insensitive" } } },
         ],
@@ -77,12 +65,8 @@ export const eventRepository = {
       where.status = status as any;
     }
 
-    if (venueId) {
-      permitterFilter = { ...permitterFilter, venueId };
-    }
-
     if (regionId) {
-      permitterFilter = { ...permitterFilter, venue: { regionId } };
+      permitterFilter = { ...permitterFilter, regionId };
     }
 
     if (permitterId) {
@@ -103,21 +87,7 @@ export const eventRepository = {
 
     const include = {
       permitter: {
-        include: {
-          permitter: { select: { id: true, name: true } },
-          spg: { select: { id: true, name: true } },
-          venue: {
-            select: {
-              id: true,
-              name: true,
-              regionId: true,
-              region: { select: { name: true } },
-            },
-          },
-          schools: {
-            orderBy: { order: "asc" as const },
-          },
-        },
+        include: eventPermitterInclude,
       },
     } satisfies Prisma.EventInclude;
 
@@ -140,21 +110,7 @@ export const eventRepository = {
       where: { id },
       include: {
         permitter: {
-          include: {
-            permitter: { select: { id: true, name: true } },
-            spg: { select: { id: true, name: true } },
-            venue: {
-              select: {
-                id: true,
-                name: true,
-                regionId: true,
-                region: { select: { name: true } },
-              },
-            },
-            schools: {
-              orderBy: { order: "asc" },
-            },
-          },
+          include: eventPermitterInclude,
         },
       },
     });
@@ -172,7 +128,7 @@ export const eventRepository = {
       include: {
         permitter: { select: { id: true, name: true, role: true } },
         spg: { select: { id: true, name: true, role: true } },
-        venue: { select: { id: true } },
+        region: { select: { id: true, name: true } },
       },
     });
   },
@@ -184,21 +140,7 @@ export const eventRepository = {
       },
       include: {
         permitter: {
-          include: {
-            permitter: { select: { id: true, name: true } },
-            spg: { select: { id: true, name: true } },
-            venue: {
-              select: {
-                id: true,
-                name: true,
-                regionId: true,
-                region: { select: { name: true } },
-              },
-            },
-            schools: {
-              orderBy: { order: "asc" },
-            },
-          },
+          include: eventPermitterInclude,
         },
       },
     });
@@ -210,21 +152,7 @@ export const eventRepository = {
       data,
       include: {
         permitter: {
-          include: {
-            permitter: { select: { id: true, name: true } },
-            spg: { select: { id: true, name: true } },
-            venue: {
-              select: {
-                id: true,
-                name: true,
-                regionId: true,
-                region: { select: { name: true } },
-              },
-            },
-            schools: {
-              orderBy: { order: "asc" },
-            },
-          },
+          include: eventPermitterInclude,
         },
       },
     });

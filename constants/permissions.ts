@@ -5,12 +5,6 @@ export const PERMISSIONS = {
     UPDATE: "users.update",
     DELETE: "users.delete",
   },
-  VENUES: {
-    CREATE: "venues.create",
-    READ: "venues.read",
-    UPDATE: "venues.update",
-    DELETE: "venues.delete",
-  },
   PERMITTERS: {
     CREATE: "permitters.create",
     READ: "permitters.read",
@@ -26,9 +20,26 @@ export const PERMISSIONS = {
   REPORTS: {
     READ: "reports.read",
   },
-  TRANSACTIONS: {
-    CREATE: "transactions.create",
-    READ: "transactions.read",
+  ATTENDANCE: {
+    CREATE: "attendance.create",
+    READ: "attendance.read",
+    UPDATE: "attendance.update",
+    DELETE: "attendance.delete",
+  },
+  SELLINGS: {
+    CREATE: "sellings.create",
+    READ: "sellings.read",
+    UPDATE: "sellings.update",
+    DELETE: "sellings.delete",
+  },
+  CONTACTS: {
+    CREATE: "contacts.create",
+    READ: "contacts.read",
+    UPDATE: "contacts.update",
+    DELETE: "contacts.delete",
+  },
+  DASHBOARDS: {
+    READ_TODAY: "dashboards.readToday",
   },
 } as const;
 

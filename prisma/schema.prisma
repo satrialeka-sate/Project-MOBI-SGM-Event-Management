@@ -12,8 +12,8 @@ model Region {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users  User[]
-  venues Venue[]
+  users      User[]
+  permitters Permitter[]
 
   @@map("regions")
 }
@@ -35,23 +35,6 @@ model User {
   @@map("users")
 }
 
-model Venue {
-  id        String   @id @default(cuid())
-  name      String
-  kota      String
-  alamat    String
-  picVenue  String
-  regionId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  region     Region      @relation(fields: [regionId], references: [id])
-  permitters Permitter[]
-
-  @@unique([name, regionId])
-  @@map("venues")
-}
-
 enum EventStatus {
   SCHEDULED
   ONGOING
@@ -60,23 +43,27 @@ enum EventStatus {
 }
 
 model Permitter {
-  id          String   @id @default(cuid())
-  permitterId String
-  spgId       String
-  venueId     String
-  eventDate   DateTime
-  status      String   @default("active")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(cuid())
+  permitterId  String
+  spgId        String
+  regionId     String
+  cycle        String
+  venueName    String
+  venueCity    String
+  venueAddress String
+  venuePIC     String
+  eventDate    DateTime
+  status       String   @default("active")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   permitter User              @relation("PermitterUser", fields: [permitterId], references: [id])
   spg       User              @relation("SPGUser", fields: [spgId], references: [id])
-  venue     Venue             @relation(fields: [venueId], references: [id])
+  region    Region            @relation(fields: [regionId], references: [id])
   schools   PermitterSchool[]
   event     Event?
 
   @@unique([spgId, eventDate])
-  @@unique([venueId, eventDate])
   @@map("permitters")
 }
 

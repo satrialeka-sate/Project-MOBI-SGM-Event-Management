@@ -28,7 +28,6 @@ export const eventQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(100).default(10),
   search: z.string().optional(),
   status: eventStatusEnum.optional(),
-  venueId: z.string().optional(),
   regionId: z.string().optional(),
   permitterId: z.string().optional(),
   spgId: z.string().optional(),

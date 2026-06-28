@@ -23,20 +23,21 @@ function toEventResponse(event: {
   photoUrl: string | null;
   status: string;
   createdAt: Date;
-  updatedAt: Date;    permitter: {
+  updatedAt: Date;
+  permitter: {
     id: string;
     permitterId: string;
     spgId: string;
-    venueId: string;
+    regionId: string;
+    cycle: string;
+    venueName: string;
+    venueCity: string;
+    venueAddress: string;
+    venuePIC: string;
     eventDate: Date;
     permitter: { id: string; name: string };
     spg: { id: string; name: string };
-    venue: {
-      id: string;
-      name: string;
-      regionId: string;
-      region: { name: string };
-    };
+    region: { id: string; name: string };
     schools: Array<{
       id: string;
       name: string;
@@ -54,10 +55,13 @@ function toEventResponse(event: {
     permitterName: event.permitter.permitter.name,
     spgId: event.permitter.spgId,
     spgName: event.permitter.spg.name,
-    venueId: event.permitter.venueId,
-    venueName: event.permitter.venue.name,
-    regionId: event.permitter.venue.regionId,
-    regionName: event.permitter.venue.region.name,
+    regionId: event.permitter.regionId,
+    regionName: event.permitter.region.name,
+    cycle: event.permitter.cycle,
+    venueName: event.permitter.venueName,
+    venueCity: event.permitter.venueCity,
+    venueAddress: event.permitter.venueAddress,
+    venuePIC: event.permitter.venuePIC,
     eventDate: event.permitter.eventDate,
     startTime: event.startTime,
     endTime: event.endTime,

@@ -15,15 +15,31 @@ const WILDCARD = "*";
 const rolePermissions: Record<Role, readonly string[]> = {
   [ROLES.ADMIN]: [WILDCARD],
   [ROLES.PERMITTER]: [
-    "venues.read",
     "permitters.read",
     "permitters.create",
     "permitters.update",
-    "events.create",
     "events.read",
+    "events.create",
   ],
-  [ROLES.SPG]: ["events.read", "events.update", "transactions.create"],
-  [ROLES.SUPERVISOR]: ["reports.read", "events.read", "permitters.read"],
+  [ROLES.SPG]: [
+    "events.read",
+    "events.update",
+    "attendance.create",
+    "attendance.read",
+    "attendance.update",
+    "sellings.create",
+    "sellings.read",
+    "sellings.update",
+    "contacts.create",
+    "contacts.read",
+    "contacts.update",
+    "dashboards.readToday",
+  ],
+  [ROLES.SUPERVISOR]: [
+    "reports.read",
+    "events.read",
+    "permitters.read",
+  ],
 };
 
 /**

@@ -7,24 +7,25 @@ import type {
   PaginatedResponse,
 } from "@/types/permitter";
 import { AppError } from "@/lib/errors";
+import { ROLES } from "@/constants/roles";
 
 function toPermitterResponse(permitter: {
   id: string;
   permitterId: string;
   spgId: string;
-  venueId: string;
+  regionId: string;
+  cycle: string;
+  venueName: string;
+  venueCity: string;
+  venueAddress: string;
+  venuePIC: string;
   eventDate: Date;
   status: string;
   createdAt: Date;
   updatedAt: Date;
-  permitter: { id: string; name: string };
-  spg: { id: string; name: string };
-  venue: {
-    id: string;
-    name: string;
-    regionId: string;
-    region: { name: string };
-  };
+  permitter: { id: string; name: string; regionId: string };
+  spg: { id: string; name: string; regionId: string };
+  region: { id: string; name: string };
   schools: Array<{
     id: string;
     name: string;
@@ -41,10 +42,13 @@ function toPermitterResponse(permitter: {
     permitterName: permitter.permitter.name,
     spgId: permitter.spgId,
     spgName: permitter.spg.name,
-    venueId: permitter.venueId,
-    venueName: permitter.venue.name,
-    regionId: permitter.venue.regionId,
-    regionName: permitter.venue.region.name,
+    regionId: permitter.regionId,
+    regionName: permitter.region.name,
+    cycle: permitter.cycle,
+    venueName: permitter.venueName,
+    venueCity: permitter.venueCity,
+    venueAddress: permitter.venueAddress,
+    venuePIC: permitter.venuePIC,
     eventDate: permitter.eventDate,
     status: permitter.status,
     schools: permitter.schools.map((s) => ({
@@ -86,10 +90,19 @@ export const permitterService = {
   },
 
   async create(data: CreatePermitterInput): Promise<PermitterResponse> {
-    // Verify venue exists
-    const venue = await permitterRepository.verifyVenueExists(data.venueId);
-    if (!venue) {
-      throw new AppError("Venue not found", 404);
+    // Validate eventDate is not in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (data.eventDate < today) {
+      throw new AppError("Event date cannot be in the past", 400, [
+        "Select today or a future date",
+      ]);
+    }
+
+    // Verify region exists
+    const region = await permitterRepository.verifyRegionExists(data.regionId);
+    if (!region) {
+      throw new AppError("Region not found", 404);
     }
 
     // Verify permitter user exists
@@ -100,21 +113,29 @@ export const permitterService = {
       throw new AppError("Permitter user not found", 404);
     }
 
-    // Verify SPG user exists
+    // Verify SPG user exists and get role + region info
     const spgUser = await permitterRepository.verifyUserExists(data.spgId);
     if (!spgUser) {
       throw new AppError("SPG user not found", 404);
     }
 
-    // Check for conflicting event (same venue, same date)
-    const conflict = await permitterRepository.findConflicting(
-      data.venueId,
-      data.eventDate
-    );
-    if (conflict) {
+    // Verify SPG user has the SPG role
+    if (spgUser.role !== ROLES.SPG) {
       throw new AppError(
-        "A permitter event already exists for this venue on the selected date",
-        409
+        `User "${spgUser.name}" must have the SPG role to be assigned as SPG`,
+        400
+      );
+    }
+
+    // Verify SPG is in the same region as the planning
+    if (spgUser.regionId !== data.regionId) {
+      throw new AppError(
+        "SPG user must belong to the same region as the planning",
+        400,
+        [
+          `Planning region ID: ${data.regionId}`,
+          `SPG user "${spgUser.name}" region ID: ${spgUser.regionId}`,
+        ]
       );
     }
 
@@ -132,10 +153,10 @@ export const permitterService = {
     }
 
     // Verify references if they are being changed
-    if (data.venueId) {
-      const venue = await permitterRepository.verifyVenueExists(data.venueId);
-      if (!venue) {
-        throw new AppError("Venue not found", 404);
+    if (data.regionId) {
+      const region = await permitterRepository.verifyRegionExists(data.regionId);
+      if (!region) {
+        throw new AppError("Region not found", 404);
       }
     }
 
@@ -153,27 +174,18 @@ export const permitterService = {
       if (!spgUser) {
         throw new AppError("SPG user not found", 404);
       }
-    }
 
-    // Check for conflict if venueId or eventDate is being changed
-    const newVenueId = data.venueId ?? existing.venueId;
-    const newEventDate = data.eventDate ?? existing.eventDate;
-    if (data.venueId || data.eventDate) {
-      const conflict = await permitterRepository.findConflicting(
-        newVenueId,
-        newEventDate,
-        id
-      );
-      if (conflict) {
+      // Verify new SPG has SPG role
+      if (spgUser.role !== ROLES.SPG) {
         throw new AppError(
-          "A permitter event already exists for this venue on the selected date",
-          409
+          `User "${spgUser.name}" must have the SPG role to be assigned as SPG`,
+          400
         );
       }
     }
 
     const permitter = await permitterRepository.updateInTransaction(id, data);
-    return toPermitterResponse(permitter!);
+    return toPermitterResponse(permitter);
   },
 
   async delete(id: string): Promise<void> {

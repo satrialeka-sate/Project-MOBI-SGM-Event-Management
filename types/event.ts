@@ -6,10 +6,13 @@ export interface EventResponse {
   permitterName: string;
   spgId: string;
   spgName: string;
-  venueId: string;
-  venueName: string;
   regionId: string;
   regionName: string;
+  cycle: string;
+  venueName: string;
+  venueCity: string;
+  venueAddress: string;
+  venuePIC: string;
   eventDate: Date;
   startTime: Date | null;
   endTime: Date | null;
@@ -54,7 +57,6 @@ export interface EventQueryParams {
   limit?: number;
   search?: string;
   status?: string;
-  venueId?: string;
   regionId?: string;
   permitterId?: string;
   spgId?: string;

@@ -2,53 +2,41 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import type { CreatePermitterInput, UpdatePermitterInput, PermitterQueryParams } from "@/types/permitter";
 
+const permitterInclude = {
+  permitter: { select: { id: true, name: true, regionId: true } },
+  spg: { select: { id: true, name: true, regionId: true } },
+  region: { select: { id: true, name: true } },
+  schools: {
+    orderBy: { order: "asc" as const },
+  },
+} satisfies Prisma.PermitterInclude;
+
+type PermitterWithRelations = Prisma.PermitterGetPayload<{ include: typeof permitterInclude }>;
+
 interface FindAllResult {
-  permitters: Array<{
-    id: string;
-    permitterId: string;
-    spgId: string;
-    venueId: string;
-    eventDate: Date;
-    status: string;
-    createdAt: Date;
-    updatedAt: Date;
-    permitter: { id: string; name: string };
-    spg: { id: string; name: string };
-    venue: {
-      id: string;
-      name: string;
-      regionId: string;
-      region: { name: string };
-    };
-    schools: Array<{
-      id: string;
-      name: string;
-      schoolAddress: string;
-      totalStudents: number;
-      picName: string;
-      picPhone: string;
-      order: number;
-    }>;
-  }>;
+  permitters: PermitterWithRelations[];
   total: number;
 }
 
 export const permitterRepository = {
   async findAll(params: PermitterQueryParams): Promise<FindAllResult> {
-    const { page = 1, limit = 10, search, venueId, userId, date, status, sortBy = "eventDate", sortOrder = "desc" } = params;
+    const { page = 1, limit = 10, search, regionId, userId, date, status, sortBy = "eventDate", sortOrder = "desc" } = params;
 
     const where: Prisma.PermitterWhereInput = {};
 
     if (search) {
       where.OR = [
-        { venue: { name: { contains: search, mode: "insensitive" } } },
+        { venueName: { contains: search, mode: "insensitive" } },
+        { venueCity: { contains: search, mode: "insensitive" } },
+        { venueAddress: { contains: search, mode: "insensitive" } },
+        { venuePIC: { contains: search, mode: "insensitive" } },
         { permitter: { name: { contains: search, mode: "insensitive" } } },
         { spg: { name: { contains: search, mode: "insensitive" } } },
       ];
     }
 
-    if (venueId) {
-      where.venueId = venueId;
+    if (regionId) {
+      where.regionId = regionId;
     }
 
     if (userId) {
@@ -83,29 +71,13 @@ export const permitterRepository = {
       [sortBy]: sortOrder,
     };
 
-    const include = {
-      permitter: { select: { id: true, name: true } },
-      spg: { select: { id: true, name: true } },
-      venue: {
-        select: {
-          id: true,
-          name: true,
-          regionId: true,
-          region: { select: { name: true } },
-        },
-      },
-      schools: {
-        orderBy: { order: "asc" as const },
-      },
-    } satisfies Prisma.PermitterInclude;
-
     const [permitters, total] = await Promise.all([
       prisma.permitter.findMany({
         where,
         orderBy,
         skip: (page - 1) * limit,
         take: limit,
-        include,
+        include: permitterInclude,
       }),
       prisma.permitter.count({ where }),
     ]);
@@ -116,36 +88,26 @@ export const permitterRepository = {
   async findById(id: string) {
     return prisma.permitter.findUnique({
       where: { id },
-      include: {
-        permitter: { select: { id: true, name: true } },
-        spg: { select: { id: true, name: true } },
-        venue: {
-          select: {
-            id: true,
-            name: true,
-            regionId: true,
-            region: { select: { name: true } },
-          },
-        },
-        schools: {
-          orderBy: { order: "asc" },
-        },
-      },
+      include: permitterInclude,
     });
   },
 
-  async findConflicting(venueId: string, date: Date, excludeId?: string) {
-    const where: Prisma.PermitterWhereInput = {
-      venueId,
-      eventDate: {
-        gte: new Date(new Date(date).setHours(0, 0, 0, 0)),
-        lte: new Date(new Date(date).setHours(23, 59, 59, 999)),
+  async findBySpgAndDate(spgId: string, date: Date) {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    return prisma.permitter.findFirst({
+      where: {
+        spgId,
+        eventDate: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
       },
-    };
-    if (excludeId) {
-      where.id = { not: excludeId };
-    }
-    return prisma.permitter.findFirst({ where });
+      include: permitterInclude,
+    });
   },
 
   async createInTransaction(data: CreatePermitterInput) {
@@ -154,7 +116,12 @@ export const permitterRepository = {
         data: {
           permitterId: data.permitterId,
           spgId: data.spgId,
-          venueId: data.venueId,
+          regionId: data.regionId,
+          cycle: data.cycle,
+          venueName: data.venueName,
+          venueCity: data.venueCity,
+          venueAddress: data.venueAddress,
+          venuePIC: data.venuePIC,
           eventDate: data.eventDate,
           status: data.status ?? "active",
           schools: {
@@ -168,21 +135,7 @@ export const permitterRepository = {
             })),
           },
         },
-        include: {
-          permitter: { select: { id: true, name: true } },
-          spg: { select: { id: true, name: true } },
-          venue: {
-            select: {
-              id: true,
-              name: true,
-              regionId: true,
-              region: { select: { name: true } },
-            },
-          },
-          schools: {
-            orderBy: { order: "asc" },
-          },
-        },
+        include: permitterInclude,
       });
       return permitter;
     });
@@ -190,30 +143,14 @@ export const permitterRepository = {
 
   async updateInTransaction(id: string, data: UpdatePermitterInput) {
     return prisma.$transaction(async (tx) => {
-      // Update permitter fields (excluding schools)
       const { schools, ...permitterData } = data;
 
       const permitter = await tx.permitter.update({
         where: { id },
         data: permitterData,
-        include: {
-          permitter: { select: { id: true, name: true } },
-          spg: { select: { id: true, name: true } },
-          venue: {
-            select: {
-              id: true,
-              name: true,
-              regionId: true,
-              region: { select: { name: true } },
-            },
-          },
-          schools: {
-            orderBy: { order: "asc" },
-          },
-        },
+        include: permitterInclude,
       });
 
-      // If schools are provided, replace all existing schools
       if (schools) {
         await tx.permitterSchool.deleteMany({ where: { permitterId: id } });
 
@@ -229,24 +166,9 @@ export const permitterRepository = {
           })),
         });
 
-        // Re-fetch with updated schools
-        return tx.permitter.findUnique({
+        return tx.permitter.findUniqueOrThrow({
           where: { id },
-          include: {
-            permitter: { select: { id: true, name: true } },
-            spg: { select: { id: true, name: true } },
-            venue: {
-              select: {
-                id: true,
-                name: true,
-                regionId: true,
-                region: { select: { name: true } },
-              },
-            },
-            schools: {
-              orderBy: { order: "asc" },
-            },
-          },
+          include: permitterInclude,
         });
       }
 
@@ -258,11 +180,17 @@ export const permitterRepository = {
     return prisma.permitter.delete({ where: { id } });
   },
 
-  async verifyVenueExists(venueId: string) {
-    return prisma.venue.findUnique({ where: { id: venueId }, select: { id: true } });
+  async verifyRegionExists(regionId: string) {
+    return prisma.region.findUnique({
+      where: { id: regionId },
+      select: { id: true, name: true },
+    });
   },
 
   async verifyUserExists(userId: string) {
-    return prisma.user.findUnique({ where: { id: userId }, select: { id: true, name: true } });
+    return prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, regionId: true, role: true },
+    });
   },
 };
