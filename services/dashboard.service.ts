@@ -1,7 +1,5 @@
 import { dashboardRepository } from "@/repositories/dashboard.repository";
 import type { TodayEventResponse } from "@/types/dashboard";
-import { ROLES } from "@/constants/roles";
-import { AppError } from "@/lib/errors";
 
 export const dashboardService = {
   /**
@@ -29,15 +27,16 @@ export const dashboardService = {
       cycle: permitter.cycle,
       venue: {
         name: permitter.venueName,
-        city: permitter.venueCity,
         address: permitter.venueAddress,
         pic: permitter.venuePIC,
       },
-      spg: {
-        id: permitter.spg.id,
-        name: permitter.spg.name,
-        email: permitter.spg.email,
-      },
+      spg: permitter.spg
+        ? {
+            id: permitter.spg.id,
+            name: permitter.spg.name,
+            email: permitter.spg.email,
+          }
+        : null,
       schools: permitter.schools.map((s) => ({
         name: s.name,
         address: s.schoolAddress,

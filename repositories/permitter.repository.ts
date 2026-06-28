@@ -4,7 +4,6 @@ import type { CreatePermitterInput, UpdatePermitterInput, PermitterQueryParams }
 
 const permitterInclude = {
   permitter: { select: { id: true, name: true, regionId: true } },
-  spg: { select: { id: true, name: true, regionId: true } },
   region: { select: { id: true, name: true } },
   schools: {
     orderBy: { order: "asc" as const },
@@ -27,11 +26,9 @@ export const permitterRepository = {
     if (search) {
       where.OR = [
         { venueName: { contains: search, mode: "insensitive" } },
-        { venueCity: { contains: search, mode: "insensitive" } },
         { venueAddress: { contains: search, mode: "insensitive" } },
         { venuePIC: { contains: search, mode: "insensitive" } },
         { permitter: { name: { contains: search, mode: "insensitive" } } },
-        { spg: { name: { contains: search, mode: "insensitive" } } },
       ];
     }
 
@@ -41,7 +38,7 @@ export const permitterRepository = {
 
     if (userId) {
       const userFilter: Prisma.PermitterWhereInput = {
-        OR: [{ permitterId: userId }, { spgId: userId }],
+        permitterId: userId,
       };
       if (search) {
         // If search is also active, use AND so search narrows the user filter
@@ -92,36 +89,19 @@ export const permitterRepository = {
     });
   },
 
-  async findBySpgAndDate(spgId: string, date: Date) {
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
 
-    return prisma.permitter.findFirst({
-      where: {
-        spgId,
-        eventDate: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
-      },
-      include: permitterInclude,
-    });
-  },
 
   async createInTransaction(data: CreatePermitterInput) {
     return prisma.$transaction(async (tx) => {
       const permitter = await tx.permitter.create({
         data: {
           permitterId: data.permitterId,
-          spgId: data.spgId,
           regionId: data.regionId,
           cycle: data.cycle,
           venueName: data.venueName,
-          venueCity: data.venueCity,
           venueAddress: data.venueAddress,
           venuePIC: data.venuePIC,
+          venuePICPhone: data.venuePICPhone,
           eventDate: data.eventDate,
           status: data.status ?? "active",
           schools: {

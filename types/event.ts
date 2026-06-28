@@ -4,13 +4,10 @@ export interface EventResponse {
   id: string;
   permitterId: string;
   permitterName: string;
-  spgId: string;
-  spgName: string;
   regionId: string;
   regionName: string;
   cycle: string;
   venueName: string;
-  venueCity: string;
   venueAddress: string;
   venuePIC: string;
   eventDate: Date;

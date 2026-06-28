@@ -8,7 +8,6 @@ import type {
   PaginatedResponse,
 } from "@/types/event";
 import { AppError } from "@/lib/errors";
-import { ROLES } from "@/constants/roles";
 
 function toEventResponse(event: {
   id: string;
@@ -27,16 +26,15 @@ function toEventResponse(event: {
   permitter: {
     id: string;
     permitterId: string;
-    spgId: string;
+    spgId: string | null;
     regionId: string;
     cycle: string;
     venueName: string;
-    venueCity: string;
     venueAddress: string;
     venuePIC: string;
     eventDate: Date;
     permitter: { id: string; name: string };
-    spg: { id: string; name: string };
+    spg: { id: string; name: string } | null;
     region: { id: string; name: string };
     schools: Array<{
       id: string;
@@ -53,13 +51,10 @@ function toEventResponse(event: {
     id: event.id,
     permitterId: event.permitterId,
     permitterName: event.permitter.permitter.name,
-    spgId: event.permitter.spgId,
-    spgName: event.permitter.spg.name,
     regionId: event.permitter.regionId,
     regionName: event.permitter.region.name,
     cycle: event.permitter.cycle,
     venueName: event.permitter.venueName,
-    venueCity: event.permitter.venueCity,
     venueAddress: event.permitter.venueAddress,
     venuePIC: event.permitter.venuePIC,
     eventDate: event.permitter.eventDate,
@@ -117,14 +112,6 @@ export const eventService = {
     );
     if (!permitter) {
       throw new AppError("Permitter not found", 404);
-    }
-
-    // Verify SPG has SPG role
-    if (permitter.spg.role !== ROLES.SPG) {
-      throw new AppError(
-        "Assigned SPG user must have the SPG role",
-        400
-      );
     }
 
     // Check that no event already exists for this permitter

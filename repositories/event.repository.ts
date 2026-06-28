@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import type { Prisma } from "@prisma/client";
+import type { Prisma, $Enums } from "@prisma/client";
 import type { CreateEventInput, UpdateEventInput, EventQueryParams } from "@/types/event";
 
 const eventPermitterInclude = {
@@ -54,15 +54,13 @@ export const eventRepository = {
       permitterFilter = {
         OR: [
           { venueName: { contains: search, mode: "insensitive" } },
-          { venueCity: { contains: search, mode: "insensitive" } },
           { permitter: { name: { contains: search, mode: "insensitive" } } },
-          { spg: { name: { contains: search, mode: "insensitive" } } },
         ],
       };
     }
 
     if (status) {
-      where.status = status as any;
+      where.status = status as $Enums.EventStatus;
     }
 
     if (regionId) {
@@ -127,7 +125,6 @@ export const eventRepository = {
       where: { id },
       include: {
         permitter: { select: { id: true, name: true, role: true } },
-        spg: { select: { id: true, name: true, role: true } },
         region: { select: { id: true, name: true } },
       },
     });

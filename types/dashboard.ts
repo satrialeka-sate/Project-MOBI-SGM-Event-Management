@@ -7,7 +7,6 @@ export interface TodayEventResponse {
   cycle: string;
   venue: {
     name: string;
-    city: string;
     address: string;
     pic: string;
   };
@@ -15,7 +14,7 @@ export interface TodayEventResponse {
     id: string;
     name: string;
     email: string;
-  };
+  } | null;
   schools: Array<{
     name: string;
     address: string;

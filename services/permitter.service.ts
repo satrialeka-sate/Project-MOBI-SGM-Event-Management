@@ -7,24 +7,21 @@ import type {
   PaginatedResponse,
 } from "@/types/permitter";
 import { AppError } from "@/lib/errors";
-import { ROLES } from "@/constants/roles";
 
 function toPermitterResponse(permitter: {
   id: string;
   permitterId: string;
-  spgId: string;
   regionId: string;
   cycle: string;
   venueName: string;
-  venueCity: string;
   venueAddress: string;
   venuePIC: string;
+  venuePICPhone: string;
   eventDate: Date;
   status: string;
   createdAt: Date;
   updatedAt: Date;
   permitter: { id: string; name: string; regionId: string };
-  spg: { id: string; name: string; regionId: string };
   region: { id: string; name: string };
   schools: Array<{
     id: string;
@@ -40,15 +37,13 @@ function toPermitterResponse(permitter: {
     id: permitter.id,
     permitterId: permitter.permitterId,
     permitterName: permitter.permitter.name,
-    spgId: permitter.spgId,
-    spgName: permitter.spg.name,
     regionId: permitter.regionId,
     regionName: permitter.region.name,
     cycle: permitter.cycle,
     venueName: permitter.venueName,
-    venueCity: permitter.venueCity,
     venueAddress: permitter.venueAddress,
     venuePIC: permitter.venuePIC,
+    venuePICPhone: permitter.venuePICPhone,
     eventDate: permitter.eventDate,
     status: permitter.status,
     schools: permitter.schools.map((s) => ({
@@ -113,32 +108,6 @@ export const permitterService = {
       throw new AppError("Permitter user not found", 404);
     }
 
-    // Verify SPG user exists and get role + region info
-    const spgUser = await permitterRepository.verifyUserExists(data.spgId);
-    if (!spgUser) {
-      throw new AppError("SPG user not found", 404);
-    }
-
-    // Verify SPG user has the SPG role
-    if (spgUser.role !== ROLES.SPG) {
-      throw new AppError(
-        `User "${spgUser.name}" must have the SPG role to be assigned as SPG`,
-        400
-      );
-    }
-
-    // Verify SPG is in the same region as the planning
-    if (spgUser.regionId !== data.regionId) {
-      throw new AppError(
-        "SPG user must belong to the same region as the planning",
-        400,
-        [
-          `Planning region ID: ${data.regionId}`,
-          `SPG user "${spgUser.name}" region ID: ${spgUser.regionId}`,
-        ]
-      );
-    }
-
     const permitter = await permitterRepository.createInTransaction(data);
     return toPermitterResponse(permitter);
   },
@@ -166,21 +135,6 @@ export const permitterService = {
       );
       if (!permitterUser) {
         throw new AppError("Permitter user not found", 404);
-      }
-    }
-
-    if (data.spgId) {
-      const spgUser = await permitterRepository.verifyUserExists(data.spgId);
-      if (!spgUser) {
-        throw new AppError("SPG user not found", 404);
-      }
-
-      // Verify new SPG has SPG role
-      if (spgUser.role !== ROLES.SPG) {
-        throw new AppError(
-          `User "${spgUser.name}" must have the SPG role to be assigned as SPG`,
-          400
-        );
       }
     }
 

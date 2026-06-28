@@ -49,7 +49,7 @@ async function main() {
     },
     {
       name: "Permitter Jateng",
-      email: "permitter.jateng@mobi.com",
+      email: "`permitter.jateng@mobi.com`",
       role: "PERMITTER",
       regionName: "JATENG",
     },
