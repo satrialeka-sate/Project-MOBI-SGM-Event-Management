@@ -6,7 +6,9 @@ import type {
   PermitterResponse,
   PaginatedResponse,
 } from "@/types/permitter";
+import type { ActorContext } from "@/types/auth";
 import { AppError } from "@/lib/errors";
+import { canAccessRegion, applyRegionFilter, isRegionScope } from "@/lib/scope";
 
 function toPermitterResponse(permitter: {
   id: string;
@@ -60,12 +62,29 @@ function toPermitterResponse(permitter: {
   };
 }
 
+/**
+ * Enforce region-scoped actor: if actor has REGION scope,
+ * force the given regionId to the actor's regionId.
+ * Returns the (possibly overridden) regionId.
+ */
+function enforceRegionScope(
+  regionId: string,
+  actor: ActorContext
+): string {
+  if (isRegionScope(actor.scope)) {
+    return actor.regionId;
+  }
+  return regionId;
+}
+
 export const permitterService = {
   async list(
+    actor: ActorContext,
     params: PermitterQueryParams
   ): Promise<PaginatedResponse<PermitterResponse>> {
-    const { page = 1, limit = 10 } = params;
-    const { permitters, total } = await permitterRepository.findAll(params);
+    const filteredParams = applyRegionFilter(params, actor);
+    const { page = 1, limit = 10 } = filteredParams;
+    const { permitters, total } = await permitterRepository.findAll(filteredParams);
 
     return {
       items: permitters.map(toPermitterResponse),
@@ -76,15 +95,27 @@ export const permitterService = {
     };
   },
 
-  async getById(id: string): Promise<PermitterResponse> {
+  async getById(actor: ActorContext, id: string): Promise<PermitterResponse> {
     const permitter = await permitterRepository.findById(id);
     if (!permitter) {
       throw new AppError("Permitter not found", 404);
     }
+
+    // Verify actor has access to this permitter's region
+    if (!canAccessRegion(actor.regionId, permitter.regionId, actor.scope)) {
+      throw new AppError("Forbidden: you do not have access to this permitter", 403);
+    }
+
     return toPermitterResponse(permitter);
   },
 
-  async create(data: CreatePermitterInput): Promise<PermitterResponse> {
+  async create(
+    actor: ActorContext,
+    data: CreatePermitterInput
+  ): Promise<PermitterResponse> {
+    // Enforce region scope: REGION users can only create in their own region
+    const resolvedRegionId = enforceRegionScope(data.regionId, actor);
+
     // Validate eventDate is not in the past
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -95,7 +126,7 @@ export const permitterService = {
     }
 
     // Verify region exists
-    const region = await permitterRepository.verifyRegionExists(data.regionId);
+    const region = await permitterRepository.verifyRegionExists(resolvedRegionId);
     if (!region) {
       throw new AppError("Region not found", 404);
     }
@@ -108,11 +139,15 @@ export const permitterService = {
       throw new AppError("Permitter user not found", 404);
     }
 
-    const permitter = await permitterRepository.createInTransaction(data);
+    const permitter = await permitterRepository.createInTransaction({
+      ...data,
+      regionId: resolvedRegionId,
+    });
     return toPermitterResponse(permitter);
   },
 
   async update(
+    actor: ActorContext,
     id: string,
     data: UpdatePermitterInput
   ): Promise<PermitterResponse> {
@@ -121,9 +156,20 @@ export const permitterService = {
       throw new AppError("Permitter not found", 404);
     }
 
+    // Verify actor has access to this permitter's region
+    if (!canAccessRegion(actor.regionId, existing.regionId, actor.scope)) {
+      throw new AppError("Forbidden: you do not have access to this permitter", 403);
+    }
+
+    // Enforce region scope: REGION users cannot change regionId
+    const resolvedRegionId = enforceRegionScope(
+      data.regionId ?? existing.regionId,
+      actor
+    );
+
     // Verify references if they are being changed
-    if (data.regionId) {
-      const region = await permitterRepository.verifyRegionExists(data.regionId);
+    if (resolvedRegionId !== existing.regionId) {
+      const region = await permitterRepository.verifyRegionExists(resolvedRegionId);
       if (!region) {
         throw new AppError("Region not found", 404);
       }
@@ -138,14 +184,22 @@ export const permitterService = {
       }
     }
 
-    const permitter = await permitterRepository.updateInTransaction(id, data);
+    const permitter = await permitterRepository.updateInTransaction(id, {
+      ...data,
+      regionId: resolvedRegionId,
+    });
     return toPermitterResponse(permitter);
   },
 
-  async delete(id: string): Promise<void> {
+  async delete(actor: ActorContext, id: string): Promise<void> {
     const existing = await permitterRepository.findById(id);
     if (!existing) {
       throw new AppError("Permitter not found", 404);
+    }
+
+    // Verify actor has access to this permitter's region
+    if (!canAccessRegion(actor.regionId, existing.regionId, actor.scope)) {
+      throw new AppError("Forbidden: you do not have access to this permitter", 403);
     }
 
     await permitterRepository.delete(id);

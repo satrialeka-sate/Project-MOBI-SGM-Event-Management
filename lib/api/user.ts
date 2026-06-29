@@ -6,6 +6,8 @@ export interface UserItem {
   name: string;
   email: string;
   role: string;
+  level: string;
+  scope: string;
   regionId: string;
 }
 

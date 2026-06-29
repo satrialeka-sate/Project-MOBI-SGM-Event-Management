@@ -3,6 +3,7 @@ import { requirePermission } from "@/lib/rbac";
 import { PERMISSIONS } from "@/constants/permissions";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { handleApiError } from "@/lib/errors";
+import type { ActorContext } from "@/types/auth";
 import { createEventSchema, eventQuerySchema } from "@/validations/event";
 import { eventService } from "@/services/event.service";
 
@@ -22,7 +23,15 @@ export const GET = auth(async function GET(request) {
       return errorResponse("Validation failed", [], 422);
     }
 
-    const result = await eventService.list(parsed.data);
+    const actor: ActorContext = {
+      id: session.user.id,
+      role: session.user.role,
+      level: session.user.level,
+      scope: session.user.scope,
+      regionId: session.user.regionId,
+    };
+
+    const result = await eventService.list(actor, parsed.data);
     return successResponse(result, "Events retrieved successfully");
   } catch (error) {
     return handleApiError(error);
@@ -44,7 +53,15 @@ export const POST = auth(async function POST(request) {
       return errorResponse("Validation failed", [], 422);
     }
 
-    const event = await eventService.create(parsed.data);
+    const actor: ActorContext = {
+      id: session.user.id,
+      role: session.user.role,
+      level: session.user.level,
+      scope: session.user.scope,
+      regionId: session.user.regionId,
+    };
+
+    const event = await eventService.create(actor, parsed.data);
     return successResponse(event, "Event created successfully", 201);
   } catch (error) {
     return handleApiError(error);

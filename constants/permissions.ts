@@ -17,6 +17,9 @@ export const PERMISSIONS = {
     UPDATE: "events.update",
     DELETE: "events.delete",
   },
+  REGIONS: {
+    READ: "regions.read",
+  },
   REPORTS: {
     READ: "reports.read",
   },
@@ -37,9 +40,6 @@ export const PERMISSIONS = {
     READ: "contacts.read",
     UPDATE: "contacts.update",
     DELETE: "contacts.delete",
-  },
-  DASHBOARDS: {
-    READ_TODAY: "dashboards.readToday",
   },
 } as const;
 

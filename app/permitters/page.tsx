@@ -13,6 +13,7 @@ import EmptyState from "@/components/EmptyState";
 import ErrorState from "@/components/ErrorState";
 import { TableSkeleton, CardSkeleton } from "@/components/LoadingSkeleton";
 import { usePermitters, useDeletePermitter } from "@/hooks/use-permitters";
+import { usePermissions } from "@/hooks/use-permissions";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,12 @@ export default function PermittersPage() {
   const [page, setPage] = useState(1);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const limit = 10;
+
+  const {
+    canCreatePermitter,
+    canUpdatePermitter,
+    canDeletePermitter,
+  } = usePermissions();
 
   const { data, isLoading, isError, refetch } = usePermitters({
     page,
@@ -68,10 +75,12 @@ export default function PermittersPage() {
       <main className="mx-auto max-w-6xl px-4 py-6 md:py-10">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-xl font-bold text-gray-900 md:text-2xl">Permitters</h1>
-          <Button onClick={() => router.push("/permitters/new")} className="h-11 w-full sm:w-auto">
-            <Plus className="mr-2 h-4 w-4" />
-            Create Permitter
-          </Button>
+          {canCreatePermitter && (
+            <Button onClick={() => router.push("/permitters/new")} className="h-11 w-full sm:w-auto">
+              <Plus className="mr-2 h-4 w-4" />
+              Create Permitter
+            </Button>
+          )}
         </div>
 
         <div className="mb-4">
@@ -89,8 +98,8 @@ export default function PermittersPage() {
           <EmptyState
             title="No permitters found"
             description={search ? "Try a different search term." : "Create your first permitter to get started."}
-            actionLabel={search ? undefined : "Create Permitter"}
-            actionHref={search ? undefined : "/permitters/new"}
+            actionLabel={search ? undefined : (canCreatePermitter ? "Create Permitter" : undefined)}
+            actionHref={search ? undefined : (canCreatePermitter ? "/permitters/new" : undefined)}
           />
         ) : (
           <>
@@ -124,12 +133,16 @@ export default function PermittersPage() {
                           <Button variant="ghost" size="icon" onClick={() => router.push(`/permitters/${p.id}`)}>
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => router.push(`/permitters/${p.id}/edit`)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => setDeleteId(p.id)}>
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
+                          {canUpdatePermitter && (
+                            <Button variant="ghost" size="icon" onClick={() => router.push(`/permitters/${p.id}/edit`)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {canDeletePermitter && (
+                            <Button variant="ghost" size="icon" onClick={() => setDeleteId(p.id)}>
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -156,12 +169,16 @@ export default function PermittersPage() {
                     <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => router.push(`/permitters/${p.id}`)}>
                       <Eye className="mr-1 h-3.5 w-3.5" /> View
                     </Button>
-                    <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => router.push(`/permitters/${p.id}/edit`)}>
-                      <Pencil className="mr-1 h-3.5 w-3.5" /> Edit
-                    </Button>
-                    <Button variant="outline" size="sm" className="flex-1 text-xs text-red-500" onClick={() => setDeleteId(p.id)}>
-                      <Trash2 className="mr-1 h-3.5 w-3.5" /> Delete
-                    </Button>
+                    {canUpdatePermitter && (
+                      <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => router.push(`/permitters/${p.id}/edit`)}>
+                        <Pencil className="mr-1 h-3.5 w-3.5" /> Edit
+                      </Button>
+                    )}
+                    {canDeletePermitter && (
+                      <Button variant="outline" size="sm" className="flex-1 text-xs text-red-500" onClick={() => setDeleteId(p.id)}>
+                        <Trash2 className="mr-1 h-3.5 w-3.5" /> Delete
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}

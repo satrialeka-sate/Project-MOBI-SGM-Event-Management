@@ -15,6 +15,7 @@ import { Loader2, Plus, Trash2, ArrowLeft, Save, MapPin } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import FormSection from "@/components/FormSection";
 import BottomActionBar from "@/components/BottomActionBar";
+import { usePermissions } from "@/hooks/use-permissions";
 import { usePermitter, useUpdatePermitter } from "@/hooks/use-permitters";
 import { useRegions } from "@/hooks/use-regions";
 import { FormSkeleton } from "@/components/LoadingSkeleton";
@@ -46,6 +47,7 @@ export default function EditPermitterPage({ params }: { params: Promise<{ id: st
   const { id } = use(params);
   const { data: session, status: authStatus } = useSession();
   const router = useRouter();
+  const { canUpdatePermitter } = usePermissions();
   const { data: permitter, isLoading: loadingPermitter } = usePermitter(id);
   const updateMutation = useUpdatePermitter();
   const { data: regions } = useRegions();
@@ -102,8 +104,14 @@ export default function EditPermitterPage({ params }: { params: Promise<{ id: st
   }, [permitter, setValue, remove, append]);
 
   useEffect(() => {
-    if (authStatus === "unauthenticated") router.push("/login");
-  }, [authStatus, router]);
+    if (authStatus === "unauthenticated") {
+      router.push("/login");
+      return;
+    }
+    if (authStatus === "authenticated" && !canUpdatePermitter) {
+      router.push("/dashboard");
+    }
+  }, [authStatus, router, canUpdatePermitter]);
 
   if (authStatus === "loading" || loadingPermitter) {
     return (

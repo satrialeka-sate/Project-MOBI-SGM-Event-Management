@@ -15,6 +15,7 @@ import { Loader2, Plus, Trash2, ArrowLeft, Save, MapPin } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import FormSection from "@/components/FormSection";
 import BottomActionBar from "@/components/BottomActionBar";
+import { usePermissions } from "@/hooks/use-permissions";
 import { useCreatePermitter } from "@/hooks/use-permitters";
 import { useRegions } from "@/hooks/use-regions";
 
@@ -44,6 +45,7 @@ type FormData = z.infer<typeof formSchema>;
 export default function CreatePermitterPage() {
   const { data: session, status: authStatus } = useSession();
   const router = useRouter();
+  const { canCreatePermitter } = usePermissions();
   const createMutation = useCreatePermitter();
   const { data: regions } = useRegions();
   const [submitError, setSubmitError] = useState("");
@@ -76,8 +78,12 @@ export default function CreatePermitterPage() {
   useEffect(() => {
     if (authStatus === "unauthenticated") {
       router.push("/login");
+      return;
     }
-  }, [authStatus, router]);
+    if (authStatus === "authenticated" && !canCreatePermitter) {
+      router.push("/dashboard");
+    }
+  }, [authStatus, router, canCreatePermitter]);
 
   if (authStatus === "loading") {
     return (

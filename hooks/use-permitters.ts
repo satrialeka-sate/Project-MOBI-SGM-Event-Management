@@ -7,10 +7,12 @@ import { toast } from "sonner";
 
 const PERMITTERS_KEY = "permitters";
 
-export function usePermitters(params: PermitterQueryParams = {}) {
+export function usePermitters(params: PermitterQueryParams & { enabled?: boolean } = {}) {
+  const { enabled, ...queryParams } = params;
   return useQuery({
-    queryKey: [PERMITTERS_KEY, params],
-    queryFn: () => permitterApi.list(params),
+    queryKey: [PERMITTERS_KEY, queryParams],
+    queryFn: () => permitterApi.list(queryParams),
+    enabled: enabled !== false,
   });
 }
 

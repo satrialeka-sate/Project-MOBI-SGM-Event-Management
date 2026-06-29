@@ -27,6 +27,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             name: true,
             password: true,
             role: true,
+            level: true,
+            scope: true,
             regionId: true,
           },
         });
@@ -41,6 +43,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           name: user.name,
           role: user.role,
+          level: user.level,
+          scope: user.scope,
           regionId: user.regionId,
         };
       },

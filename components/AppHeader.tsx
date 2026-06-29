@@ -5,13 +5,32 @@ import { useRouter } from "next/navigation";
 import { LogOut, Menu, X, Home, ClipboardList } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { usePermissions } from "@/hooks/use-permissions";
 
 export default function AppHeader() {
   const { data: session } = useSession();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { canReadPermitter } = usePermissions();
 
   if (!session?.user) return null;
+
+  const navLinks = [
+    {
+      label: "Dashboard",
+      icon: Home,
+      href: "/dashboard",
+      show: true,
+    },
+    {
+      label: "Permitters",
+      icon: ClipboardList,
+      href: "/permitters",
+      show: canReadPermitter,
+    },
+  ];
+
+  const visibleLinks = navLinks.filter((l) => l.show);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
@@ -24,14 +43,17 @@ export default function AppHeader() {
         </button>
 
         <nav className="hidden items-center gap-1 md:flex">
-          <Button variant="ghost" size="sm" onClick={() => router.push("/dashboard")}>
-            <Home className="mr-1.5 h-4 w-4" />
-            Dashboard
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => router.push("/permitters")}>
-            <ClipboardList className="mr-1.5 h-4 w-4" />
-            Permitters
-          </Button>
+          {visibleLinks.map((link) => (
+            <Button
+              key={link.href}
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push(link.href)}
+            >
+              <link.icon className="mr-1.5 h-4 w-4" />
+              {link.label}
+            </Button>
+          ))}
           <div className="mx-2 h-5 w-px bg-gray-200" />
           <span className="text-sm text-gray-500">{session.user.name}</span>
           <Button variant="ghost" size="sm" onClick={() => signOut({ callbackUrl: "/login" })}>
@@ -53,12 +75,16 @@ export default function AppHeader() {
             {session.user.name} · {session.user.role}
           </div>
           <div className="flex flex-col gap-1">
-            <Button variant="ghost" className="justify-start" onClick={() => { router.push("/dashboard"); setMenuOpen(false); }}>
-              <Home className="mr-2 h-4 w-4" /> Dashboard
-            </Button>
-            <Button variant="ghost" className="justify-start" onClick={() => { router.push("/permitters"); setMenuOpen(false); }}>
-              <ClipboardList className="mr-2 h-4 w-4" /> Permitters
-            </Button>
+            {visibleLinks.map((link) => (
+              <Button
+                key={link.href}
+                variant="ghost"
+                className="justify-start"
+                onClick={() => { router.push(link.href); setMenuOpen(false); }}
+              >
+                <link.icon className="mr-2 h-4 w-4" /> {link.label}
+              </Button>
+            ))}
             <Button variant="ghost" className="justify-start text-red-500" onClick={() => signOut({ callbackUrl: "/login" })}>
               <LogOut className="mr-2 h-4 w-4" /> Logout
             </Button>

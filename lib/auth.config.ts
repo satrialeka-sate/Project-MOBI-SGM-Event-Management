@@ -45,6 +45,8 @@ export const authConfig = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.level = user.level;
+        token.scope = user.scope;
         token.regionId = user.regionId;
       }
       return token;
@@ -53,6 +55,8 @@ export const authConfig = {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
+        session.user.level = token.level as string;
+        session.user.scope = token.scope as string;
         session.user.regionId = token.regionId as string;
       }
       return session;

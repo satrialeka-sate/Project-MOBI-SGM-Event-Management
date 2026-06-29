@@ -7,7 +7,9 @@ import type {
   EventStatus,
   PaginatedResponse,
 } from "@/types/event";
+import type { ActorContext } from "@/types/auth";
 import { AppError } from "@/lib/errors";
+import { canAccessRegion, applyRegionFilter } from "@/lib/scope";
 
 function toEventResponse(event: {
   id: string;
@@ -83,10 +85,12 @@ function toEventResponse(event: {
 
 export const eventService = {
   async list(
+    actor: ActorContext,
     params: EventQueryParams
   ): Promise<PaginatedResponse<EventResponse>> {
-    const { page = 1, limit = 10 } = params;
-    const { events, total } = await eventRepository.findAll(params);
+    const filteredParams = applyRegionFilter(params, actor);
+    const { page = 1, limit = 10 } = filteredParams;
+    const { events, total } = await eventRepository.findAll(filteredParams);
 
     return {
       items: events.map(toEventResponse),
@@ -97,21 +101,38 @@ export const eventService = {
     };
   },
 
-  async getById(id: string): Promise<EventResponse> {
+  async getById(actor: ActorContext, id: string): Promise<EventResponse> {
     const event = await eventRepository.findById(id);
     if (!event) {
       throw new AppError("Event not found", 404);
     }
+
+    // Verify actor has access to this event's region
+    if (!canAccessRegion(actor.regionId, event.permitter.regionId, actor.scope)) {
+      throw new AppError("Forbidden: you do not have access to this event", 403);
+    }
+
     return toEventResponse(event);
   },
 
-  async create(data: CreateEventInput): Promise<EventResponse> {
+  async create(
+    actor: ActorContext,
+    data: CreateEventInput
+  ): Promise<EventResponse> {
     // Verify permitter exists and get its details
     const permitter = await eventRepository.findPermitterById(
       data.permitterId
     );
     if (!permitter) {
       throw new AppError("Permitter not found", 404);
+    }
+
+    // Verify actor has access to the permitter's region
+    if (!canAccessRegion(actor.regionId, permitter.regionId, actor.scope)) {
+      throw new AppError(
+        "Forbidden: you do not have access to this permitter's region",
+        403
+      );
     }
 
     // Check that no event already exists for this permitter
@@ -130,6 +151,7 @@ export const eventService = {
   },
 
   async update(
+    actor: ActorContext,
     id: string,
     data: UpdateEventInput
   ): Promise<EventResponse> {
@@ -138,14 +160,24 @@ export const eventService = {
       throw new AppError("Event not found", 404);
     }
 
+    // Verify actor has access to this event's region
+    if (!canAccessRegion(actor.regionId, existing.permitter.regionId, actor.scope)) {
+      throw new AppError("Forbidden: you do not have access to this event", 403);
+    }
+
     const event = await eventRepository.update(id, data);
     return toEventResponse(event);
   },
 
-  async delete(id: string): Promise<void> {
+  async delete(actor: ActorContext, id: string): Promise<void> {
     const existing = await eventRepository.findById(id);
     if (!existing) {
       throw new AppError("Event not found", 404);
+    }
+
+    // Verify actor has access to this event's region
+    if (!canAccessRegion(actor.regionId, existing.permitter.regionId, actor.scope)) {
+      throw new AppError("Forbidden: you do not have access to this event", 403);
     }
 
     await eventRepository.delete(id);

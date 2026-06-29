@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, UserLevel, UserScope } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import bcrypt from "bcrypt";
@@ -28,54 +28,63 @@ async function main() {
   console.log("✅ Regions seeded");
 
   // ── Users ──────────────────────────────────────────────────────────────
+  // Semua password: admin123 (hash di-generate sekali di atas)
   const users = [
     {
-      name: "Admin Starlight",
-      email: "admin@starlight.com",
+      name: "Admin PIC Jabar",
+      email: "admin.pic.jabar@mobi.com",
       role: "ADMIN",
+      level: UserLevel.PIC,
+      scope: UserScope.REGION,
+      regionName: "JABAR",
+    },
+    {
+      name: "Admin PO",
+      email: "admin.po@mobi.com",
+      role: "ADMIN",
+      level: UserLevel.PO,
+      scope: UserScope.ALL,
+      regionName: "STARLIGHT",
+    },
+    {
+      name: "Supervisor PIC Jabar",
+      email: "supervisor.pic.jabar@mobi.com",
+      role: "SUPERVISOR",
+      level: UserLevel.PIC,
+      scope: UserScope.REGION,
+      regionName: "JABAR",
+    },
+    {
+      name: "Supervisor PO",
+      email: "supervisor.po@mobi.com",
+      role: "SUPERVISOR",
+      level: UserLevel.PO,
+      scope: UserScope.ALL,
       regionName: "STARLIGHT",
     },
     {
       name: "Permitter Jabar",
       email: "permitter.jabar@mobi.com",
       role: "PERMITTER",
+      level: UserLevel.PERMITTER,
+      scope: UserScope.REGION,
       regionName: "JABAR",
-    },
-    {
-      name: "Permitter Jatim",
-      email: "permitter.jatim@mobi.com",
-      role: "PERMITTER",
-      regionName: "JATIM",
-    },
-    {
-      name: "Permitter Jateng",
-      email: "`permitter.jateng@mobi.com`",
-      role: "PERMITTER",
-      regionName: "JATENG",
     },
     {
       name: "SPG Jabar",
       email: "spg.jabar@mobi.com",
       role: "SPG",
+      level: UserLevel.SPG,
+      scope: UserScope.REGION,
       regionName: "JABAR",
     },
     {
-      name: "SPG Jatim",
-      email: "spg.jatim@mobi.com",
+      name: "Team Leader Jabar",
+      email: "tl.jabar@mobi.com",
       role: "SPG",
-      regionName: "JATIM",
-    },
-    {
-      name: "SPG Jateng",
-      email: "spg.jateng@mobi.com",
-      role: "SPG",
-      regionName: "JATENG",
-    },
-    {
-      name: "Supervisor",
-      email: "supervisor@starlight.com",
-      role: "SUPERVISOR",
-      regionName: "STARLIGHT",
+      level: UserLevel.TEAM_LEADER,
+      scope: UserScope.REGION,
+      regionName: "JABAR",
     },
   ];
 
@@ -85,6 +94,8 @@ async function main() {
       update: {
         name: user.name,
         role: user.role,
+        level: user.level,
+        scope: user.scope,
         regionId: regionRecords[user.regionName].id,
       },
       create: {
@@ -92,6 +103,8 @@ async function main() {
         email: user.email,
         password: passwordHash,
         role: user.role,
+        level: user.level,
+        scope: user.scope,
         regionId: regionRecords[user.regionName].id,
       },
     });

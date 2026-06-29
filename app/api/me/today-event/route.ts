@@ -12,7 +12,8 @@ export const GET = auth(async function GET(request) {
       return errorResponse("Unauthorized", [], 401);
     }
 
-    requirePermission(session.user.role, PERMISSIONS.DASHBOARDS.READ_TODAY);
+    // SPG uses events.read to access their own today event
+    requirePermission(session.user.role, PERMISSIONS.EVENTS.READ);
 
     const result = await dashboardService.getTodayEvent(session.user.id);
 

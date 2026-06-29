@@ -10,12 +10,14 @@ import StatusBadge from "@/components/StatusBadge";
 import FormSection from "@/components/FormSection";
 import ErrorState from "@/components/ErrorState";
 import { FormSkeleton } from "@/components/LoadingSkeleton";
+import { usePermissions } from "@/hooks/use-permissions";
 import { usePermitter } from "@/hooks/use-permitters";
 
 export default function ViewPermitterPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { data: session, status: authStatus } = useSession();
   const router = useRouter();
+  const { canUpdatePermitter } = usePermissions();
   const { data: permitter, isLoading, isError, refetch } = usePermitter(id);
 
   useEffect(() => {
@@ -57,9 +59,11 @@ export default function ViewPermitterPage({ params }: { params: Promise<{ id: st
           >
             <ArrowLeft className="h-4 w-4" /> Back
           </button>
-          <Button size="sm" onClick={() => router.push(`/permitters/${permitter.id}/edit`)}>
-            <Pencil className="mr-1.5 h-4 w-4" /> Edit
-          </Button>
+          {canUpdatePermitter && (
+            <Button size="sm" onClick={() => router.push(`/permitters/${permitter.id}/edit`)}>
+              <Pencil className="mr-1.5 h-4 w-4" /> Edit
+            </Button>
+          )}
         </div>
 
         <div className="mb-6">

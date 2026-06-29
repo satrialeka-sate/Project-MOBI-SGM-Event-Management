@@ -3,6 +3,7 @@ import { requirePermission } from "@/lib/rbac";
 import { PERMISSIONS } from "@/constants/permissions";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { handleApiError } from "@/lib/errors";
+import type { ActorContext } from "@/types/auth";
 import { createPermitterSchema, permitterQuerySchema } from "@/validations/permitter";
 import { permitterService } from "@/services/permitter.service";
 
@@ -22,7 +23,15 @@ export const GET = auth(async function GET(request) {
       return errorResponse("Validation failed", [], 422);
     }
 
-    const result = await permitterService.list(parsed.data);
+    const actor: ActorContext = {
+      id: session.user.id,
+      role: session.user.role,
+      level: session.user.level,
+      scope: session.user.scope,
+      regionId: session.user.regionId,
+    };
+
+    const result = await permitterService.list(actor, parsed.data);
     return successResponse(result, "Permitters retrieved successfully");
   } catch (error) {
     return handleApiError(error);
@@ -44,7 +53,15 @@ export const POST = auth(async function POST(request) {
       return errorResponse("Validation failed", [], 422);
     }
 
-    const permitter = await permitterService.create(parsed.data);
+    const actor: ActorContext = {
+      id: session.user.id,
+      role: session.user.role,
+      level: session.user.level,
+      scope: session.user.scope,
+      regionId: session.user.regionId,
+    };
+
+    const permitter = await permitterService.create(actor, parsed.data);
     return successResponse(permitter, "Permitter created successfully", 201);
   } catch (error) {
     return handleApiError(error);
