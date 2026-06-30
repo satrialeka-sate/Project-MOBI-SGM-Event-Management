@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MOBI - Event Management",
-  description: "MOBI SGM Event Management System",
+  title: "SGM - Event Management",
+  description: "SGM Event Management System",
 };
 
 export default function RootLayout({

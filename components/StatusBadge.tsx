@@ -5,7 +5,7 @@ interface StatusBadgeProps {
 const statusStyles: Record<string, string> = {
   active: "bg-green-100 text-green-700",
   inactive: "bg-gray-100 text-gray-600",
-  SCHEDULED: "bg-blue-100 text-blue-700",
+  SCHEDULED: "bg-sgm-red-light text-sgm-red-dark",
   ONGOING: "bg-yellow-100 text-yellow-700",
   COMPLETED: "bg-green-100 text-green-700",
   CANCELLED: "bg-red-100 text-red-700",

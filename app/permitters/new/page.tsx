@@ -88,7 +88,7 @@ export default function CreatePermitterPage() {
   if (authStatus === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -135,10 +135,10 @@ export default function CreatePermitterPage() {
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Assignment Information Card */}
-          <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4 shadow-sm md:p-5">
+          <div className="rounded-xl border border-primary-muted bg-primary-subtle/50 p-4 shadow-sm md:p-5">
             <div className="mb-3 flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
-                <MapPin className="h-4 w-4 text-blue-600" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-muted">
+                <MapPin className="h-4 w-4 text-primary" />
               </div>
               <h3 className="text-sm font-semibold text-gray-900">Assignment Information</h3>
             </div>

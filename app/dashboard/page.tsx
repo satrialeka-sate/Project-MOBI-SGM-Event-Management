@@ -9,17 +9,7 @@ import { Plus, List, Calendar, Building2, Loader2 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { usePermissions } from "@/hooks/use-permissions";
 import { usePermitters } from "@/hooks/use-permitters";
-import { useRegions } from "@/hooks/use-regions";
-
-function getRoleBadge(role: string) {
-  const styles: Record<string, string> = {
-    ADMIN: "bg-purple-100 text-purple-700",
-    PERMITTER: "bg-blue-100 text-blue-700",
-    SPG: "bg-green-100 text-green-700",
-    SUPERVISOR: "bg-yellow-100 text-yellow-700",
-  };
-  return styles[role] || "bg-gray-100 text-gray-600";
-}
+import { formatRoleLabel } from "@/lib/format-role-label";
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -32,15 +22,11 @@ export default function DashboardPage() {
     canReadAttendance,
   } = usePermissions();
 
-  const { data: regions } = useRegions();
-  const userRegion = regions?.find((r) => r.id === session?.user?.regionId);
-
   const { data: permitterData, isLoading } = usePermitters({
     limit: 1,
     enabled: canReadPermitter,
   });
 
-  // Today's events: permitters with eventDate matching today
   const { data: todayData } = usePermitters({
     limit: 5,
     date: today,
@@ -57,7 +43,7 @@ export default function DashboardPage() {
   if (status === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-sgm-red" />
       </div>
     );
   }
@@ -66,6 +52,7 @@ export default function DashboardPage() {
 
   const user = session.user;
   const totalPermitters = permitterData?.total ?? 0;
+  const roleLabel = formatRoleLabel(user.role, user.level);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -75,27 +62,19 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold text-gray-900">
             Hello, {user.name}
           </h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <span
-              className={`rounded-full px-3 py-0.5 text-xs font-medium ${getRoleBadge(user.role || "")}`}
-            >
-              {user.role}
+          <div className="mt-2">
+            <span className="inline-flex rounded-full bg-sgm-red px-3 py-1 text-xs font-medium text-white">
+              {roleLabel}
             </span>
-            {userRegion && (
-              <span className="rounded-full bg-gray-100 px-3 py-0.5 text-xs font-medium text-gray-600">
-                {userRegion.name}
-              </span>
-            )}
           </div>
         </div>
 
         <div className="mb-8 grid gap-4 sm:grid-cols-2">
-          {/* Total Permitters card — only if user can read permitters or events */}
           {(canReadPermitter || canReadEvent) && (
-            <Card>
+            <Card className="border-sgm-red/20 bg-sgm-red-pale">
               <CardContent className="flex items-center gap-4 p-5">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100">
-                  <Building2 className="h-6 w-6 text-blue-600" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sgm-red-light">
+                  <Building2 className="h-6 w-6 text-sgm-red" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-gray-900">
@@ -107,12 +86,11 @@ export default function DashboardPage() {
             </Card>
           )}
 
-          {/* Upcoming Events card — only if user can read events */}
           {canReadEvent && (
-            <Card>
+            <Card className="border-sgm-red/20 bg-sgm-red-pale">
               <CardContent className="flex items-center gap-4 p-5">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-100">
-                  <Calendar className="h-6 w-6 text-green-600" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sgm-red-light">
+                  <Calendar className="h-6 w-6 text-sgm-red" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-gray-900">
@@ -124,15 +102,16 @@ export default function DashboardPage() {
             </Card>
           )}
 
-          {/* SPG-specific stats cards */}
           {canReadAttendance && (
-            <Card>
+            <Card className="border-sgm-red/20 bg-sgm-red-pale">
               <CardContent className="flex items-center gap-4 p-5">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-100">
-                  <Calendar className="h-6 w-6 text-orange-600" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sgm-red-light">
+                  <Calendar className="h-6 w-6 text-sgm-red" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Attendance & Selling & Contact</p>
+                  <p className="text-sm font-medium text-gray-500">
+                    Attendance & Selling & Contact
+                  </p>
                   <p className="text-xs text-gray-400">Module tersedia</p>
                 </div>
               </CardContent>
@@ -144,7 +123,7 @@ export default function DashboardPage() {
           {canCreatePermitter && (
             <Button
               size="lg"
-              className="h-12 flex-1 text-base"
+              className="h-12 flex-1 bg-sgm-red text-base text-white hover:bg-sgm-red-dark"
               onClick={() => router.push("/permitters/new")}
             >
               <Plus className="mr-2 h-5 w-5" />
@@ -155,7 +134,7 @@ export default function DashboardPage() {
             <Button
               size="lg"
               variant="outline"
-              className="h-12 flex-1 text-base"
+              className="h-12 flex-1 border-sgm-red text-base text-sgm-red hover:bg-sgm-red-pale hover:text-sgm-red-dark"
               onClick={() => router.push("/permitters")}
             >
               <List className="mr-2 h-5 w-5" />
