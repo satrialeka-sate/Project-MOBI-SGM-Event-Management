@@ -2,7 +2,6 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { LogOut, Menu, X, Home, ClipboardList } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -43,7 +42,7 @@ export default function AppHeader() {
           className="flex items-center"
           aria-label="Go to dashboard"
         >
-          <Image
+          <img
             src="/SGM_logo.svg"
             alt="SGM"
             width={128}

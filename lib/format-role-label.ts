@@ -1,8 +1,10 @@
-const ROLE_LABELS: Record<string, string> = {
-  ADMIN: "Admin",
-  SUPERVISOR: "Supervisor",
-  PERMITTER: "Permitter",
-  SPG: "SPG",
+import { UserRole } from "@prisma/client";
+
+const ROLE_LABELS: Record<UserRole, string> = {
+  [UserRole.ADMIN]: "Admin",
+  [UserRole.SUPERVISOR]: "Supervisor",
+  [UserRole.PERMITTER]: "Permitter",
+  [UserRole.SPG]: "SPG",
 };
 
 const LEVEL_LABELS: Record<string, string> = {
@@ -17,7 +19,7 @@ export function formatRoleLabel(role?: string, level?: string): string {
   if (!role) return "";
 
   const rolePart =
-    ROLE_LABELS[role] ??
+    ROLE_LABELS[role as UserRole] ??
     role.charAt(0) + role.slice(1).toLowerCase().replace(/_/g, " ");
 
   if (!level) return rolePart;

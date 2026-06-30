@@ -1,3 +1,4 @@
+import { UserRole } from "@prisma/client";
 import type { ActorContext } from "@/types/auth";
 
 /**
@@ -17,7 +18,7 @@ import type { ActorContext } from "@/types/auth";
  */
 export const SYSTEM_ACTOR: ActorContext = {
   id: "__system__",
-  role: "SYSTEM",
+  role: UserRole.ADMIN,
   level: "SYSTEM",
   scope: "ALL",
   regionId: "",

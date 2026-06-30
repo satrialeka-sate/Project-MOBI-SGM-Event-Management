@@ -1,1 +1,1 @@
-export * from "./auth";
+// Auth validations removed — using Google OAuth only

@@ -1,11 +1,13 @@
 import api from "@/lib/axios";
 import type { ApiResponse } from "./permitter";
 
+import type { UserRole } from "@prisma/client";
+
 export interface UserItem {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role: UserRole;
   level: string;
   scope: string;
   regionId: string;

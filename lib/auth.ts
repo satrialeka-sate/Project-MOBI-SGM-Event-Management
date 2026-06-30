@@ -1,31 +1,73 @@
 import NextAuth from "next-auth";
-import Credentials from "next-auth/providers/credentials";
-import bcrypt from "bcrypt";
+import Google from "next-auth/providers/google";
 import { authConfig } from "./auth.config";
-import { loginSchema } from "@/validations/auth";
 import { prisma } from "./prisma";
+import type { UserRole } from "@prisma/client";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
-  providers: [
-    Credentials({
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials) {
-        const parsed = loginSchema.safeParse(credentials);
-        if (!parsed.success) return null;
+  providers: [Google],
+  callbacks: {
+    ...authConfig.callbacks,
+    async signIn({ account, profile }) {
+      if (account?.provider !== "google") return false;
+      if (!profile?.email) return false;
 
-        const { email, password } = parsed.data;
+      const user = await prisma.user.findUnique({
+        where: { email: profile.email },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          level: true,
+          scope: true,
+          regionId: true,
+          isActive: true,
+          googleId: true,
+        },
+      });
 
+      // Reject if email not registered in the system
+      if (!user) return "/login?error=EmailNotFound";
+
+      // Reject if account is disabled
+      if (!user.isActive) return "/login?error=AccountDisabled";
+
+      // Update googleId, image, and lastLoginAt on every successful login
+      const updateData: Record<string, unknown> = {
+        lastLoginAt: new Date(),
+      };
+
+      if (profile.image) {
+        updateData.image = profile.image as string;
+      }
+
+      // Store googleId on first login if not already set
+      if (!user.googleId && account?.providerAccountId) {
+        updateData.googleId = account.providerAccountId;
+      }
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: updateData as {
+          lastLoginAt?: Date;
+          image?: string;
+          googleId?: string;
+        },
+      });
+
+      return true;
+    },
+    async jwt({ token, account, profile }) {
+      if (account && profile?.email) {
+        // On sign in, fetch user data from DB
         const user = await prisma.user.findUnique({
-          where: { email },
+          where: { email: profile.email as string },
           select: {
             id: true,
             email: true,
             name: true,
-            password: true,
             role: true,
             level: true,
             scope: true,
@@ -33,21 +75,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           },
         });
 
-        if (!user) return null;
-
-        const isValid = await bcrypt.compare(password, user.password);
-        if (!isValid) return null;
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          level: user.level,
-          scope: user.scope,
-          regionId: user.regionId,
-        };
-      },
-    }),
-  ],
+        if (user) {
+          token.id = user.id;
+          token.email = user.email;
+          token.name = user.name;
+          token.role = user.role;
+          token.level = user.level;
+          token.scope = user.scope;
+          token.regionId = user.regionId;
+        }
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
+        session.user.role = token.role as UserRole;
+        session.user.level = token.level as string;
+        session.user.scope = token.scope as string;
+        session.user.regionId = token.regionId as string;
+      }
+      return session;
+    },
+  },
 });

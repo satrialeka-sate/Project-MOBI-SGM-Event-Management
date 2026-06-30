@@ -6,11 +6,13 @@
  * This is intentionally separate from NextAuth's Session.User
  * to keep the service layer agnostic of the HTTP auth framework.
  */
+import type { UserRole } from "@prisma/client";
+
 export interface ActorContext {
   /** User's unique identifier */
   id: string;
   /** User's role (e.g., ADMIN, SUPERVISOR, PERMITTER, SPG) */
-  role: string;
+  role: UserRole;
   /** User's hierarchical level (e.g., PIC, PO, TEAM_LEADER, SPG, PERMITTER) */
   level: string;
   /** User's data access scope (e.g., REGION, ALL) */

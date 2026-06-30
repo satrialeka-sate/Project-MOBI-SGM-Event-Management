@@ -1,5 +1,6 @@
 "use client";
 
+import { UserRole } from "@prisma/client";
 import { useSession } from "next-auth/react";
 import { hasPermission, can } from "@/lib/permissions-ui";
 
@@ -12,10 +13,10 @@ import { hasPermission, can } from "@/lib/permissions-ui";
  */
 export function usePermissions() {
   const { data: session } = useSession();
-  const role = session?.user?.role ?? "";
+  const role = session?.user?.role ?? UserRole.PERMITTER;
 
   return {
-    /** The raw role string (e.g. "ADMIN", "PERMITTER", "SPG", "SUPERVISOR") */
+    /** The raw role */
     role,
 
     /** Check any permission by string (e.g. has("permitters.create")) */

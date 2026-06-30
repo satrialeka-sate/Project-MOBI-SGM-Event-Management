@@ -5,6 +5,7 @@ import { PERMISSIONS } from "@/constants/permissions";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { handleApiError } from "@/lib/errors";
 import { buildRegionFilter } from "@/lib/scope";
+import type { Prisma, UserRole } from "@prisma/client";
 
 export const GET = auth(async function GET(request) {
   try {
@@ -16,9 +17,12 @@ export const GET = auth(async function GET(request) {
     requirePermission(session.user.role, PERMISSIONS.USERS.READ);
 
     const url = new URL(request.url);
-    const role = url.searchParams.get("role");
+    const roleParam = url.searchParams.get("role");
 
-    const where: Record<string, unknown> = role ? { role } : {};
+    const where: Prisma.UserWhereInput = {};
+    if (roleParam) {
+      where.role = roleParam as UserRole;
+    }
 
     // Apply scope-based region filtering
     const regionFilter = buildRegionFilter(session.user.regionId, session.user.scope);

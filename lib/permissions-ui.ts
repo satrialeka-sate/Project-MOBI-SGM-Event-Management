@@ -58,8 +58,8 @@ const rolePermissions: Record<Role, readonly string[]> = {
  * Check whether a role has a given permission.
  * ADMIN has all permissions via wildcard.
  */
-export function hasPermission(role: string, permission: string): boolean {
-  const permissions = rolePermissions[role as Role];
+export function hasPermission(role: Role, permission: string): boolean {
+  const permissions = rolePermissions[role];
   if (!permissions) return false;
   return permissions.includes(WILDCARD) || permissions.includes(permission);
 }
@@ -68,42 +68,42 @@ export function hasPermission(role: string, permission: string): boolean {
 
 export const can = {
   permitter: {
-    read: (role: string) => hasPermission(role, "permitters.read"),
-    create: (role: string) => hasPermission(role, "permitters.create"),
-    update: (role: string) => hasPermission(role, "permitters.update"),
-    delete: (role: string) => hasPermission(role, "permitters.delete"),
+    read: (role: Role) => hasPermission(role, "permitters.read"),
+    create: (role: Role) => hasPermission(role, "permitters.create"),
+    update: (role: Role) => hasPermission(role, "permitters.update"),
+    delete: (role: Role) => hasPermission(role, "permitters.delete"),
   },
   event: {
-    read: (role: string) => hasPermission(role, "events.read"),
-    create: (role: string) => hasPermission(role, "events.create"),
-    update: (role: string) => hasPermission(role, "events.update"),
-    delete: (role: string) => hasPermission(role, "events.delete"),
+    read: (role: Role) => hasPermission(role, "events.read"),
+    create: (role: Role) => hasPermission(role, "events.create"),
+    update: (role: Role) => hasPermission(role, "events.update"),
+    delete: (role: Role) => hasPermission(role, "events.delete"),
   },
   attendance: {
-    read: (role: string) => hasPermission(role, "attendance.read"),
-    create: (role: string) => hasPermission(role, "attendance.create"),
-    update: (role: string) => hasPermission(role, "attendance.update"),
-    delete: (role: string) => hasPermission(role, "attendance.delete"),
+    read: (role: Role) => hasPermission(role, "attendance.read"),
+    create: (role: Role) => hasPermission(role, "attendance.create"),
+    update: (role: Role) => hasPermission(role, "attendance.update"),
+    delete: (role: Role) => hasPermission(role, "attendance.delete"),
   },
   selling: {
-    read: (role: string) => hasPermission(role, "sellings.read"),
-    create: (role: string) => hasPermission(role, "sellings.create"),
-    update: (role: string) => hasPermission(role, "sellings.update"),
-    delete: (role: string) => hasPermission(role, "sellings.delete"),
+    read: (role: Role) => hasPermission(role, "sellings.read"),
+    create: (role: Role) => hasPermission(role, "sellings.create"),
+    update: (role: Role) => hasPermission(role, "sellings.update"),
+    delete: (role: Role) => hasPermission(role, "sellings.delete"),
   },
   contact: {
-    read: (role: string) => hasPermission(role, "contacts.read"),
-    create: (role: string) => hasPermission(role, "contacts.create"),
-    update: (role: string) => hasPermission(role, "contacts.update"),
-    delete: (role: string) => hasPermission(role, "contacts.delete"),
+    read: (role: Role) => hasPermission(role, "contacts.read"),
+    create: (role: Role) => hasPermission(role, "contacts.create"),
+    update: (role: Role) => hasPermission(role, "contacts.update"),
+    delete: (role: Role) => hasPermission(role, "contacts.delete"),
   },
   user: {
-    read: (role: string) => hasPermission(role, "users.read"),
+    read: (role: Role) => hasPermission(role, "users.read"),
   },
   region: {
-    read: (role: string) => hasPermission(role, "regions.read"),
+    read: (role: Role) => hasPermission(role, "regions.read"),
   },
   report: {
-    read: (role: string) => hasPermission(role, "reports.read"),
+    read: (role: Role) => hasPermission(role, "reports.read"),
   },
 } as const;

@@ -57,8 +57,8 @@ const rolePermissions: Record<Role, readonly string[]> = {
  * Check whether a role has a given permission.
  * ADMIN has all permissions via wildcard.
  */
-export function hasPermission(role: string, permission: string): boolean {
-  const permissions = rolePermissions[role as Role];
+export function hasPermission(role: Role, permission: string): boolean {
+  const permissions = rolePermissions[role];
   if (!permissions) return false;
   return permissions.includes(WILDCARD) || permissions.includes(permission);
 }
@@ -69,7 +69,7 @@ export function hasPermission(role: string, permission: string): boolean {
  * which can be caught by handleApiError in API routes.
  */
 export function requirePermission(
-  role: string,
+  role: Role,
   permission: Permission
 ): void {
   if (!hasPermission(role, permission)) {
@@ -82,14 +82,14 @@ export function requirePermission(
 /**
  * Check whether a role is the admin role.
  */
-export function isAdmin(role: string): boolean {
+export function isAdmin(role: Role): boolean {
   return role === ROLES.ADMIN;
 }
 
 /**
  * Check whether a role is a supervisor.
  */
-export function isSupervisor(role: string): boolean {
+export function isSupervisor(role: Role): boolean {
   return role === ROLES.SUPERVISOR;
 }
 
@@ -97,6 +97,6 @@ export function isSupervisor(role: string): boolean {
  * Check whether a role has write (create/update/delete) capabilities.
  * Only ADMIN has full write access; SUPERVISOR is read-only.
  */
-export function canWrite(role: string): boolean {
+export function canWrite(role: Role): boolean {
   return role === ROLES.ADMIN || role === ROLES.PERMITTER || role === ROLES.SPG;
 }
