@@ -6,7 +6,7 @@
  * This is intentionally separate from NextAuth's Session.User
  * to keep the service layer agnostic of the HTTP auth framework.
  */
-import type { UserRole } from "@prisma/client";
+import type { UserRole } from "@/constants/prisma-enums";
 
 export interface ActorContext {
   /** User's unique identifier */

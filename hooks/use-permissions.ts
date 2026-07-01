@@ -1,6 +1,6 @@
 "use client";
 
-import { UserRole } from "@prisma/client";
+import { UserRole } from "@/constants/prisma-enums";
 import { useSession } from "next-auth/react";
 import { hasPermission, can } from "@/lib/permissions-ui";
 

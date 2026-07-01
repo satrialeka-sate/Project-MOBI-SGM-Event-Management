@@ -1,4 +1,4 @@
-import { UserRole } from "@prisma/client";
+import { UserRole } from "@/constants/prisma-enums";
 
 export const ROLES = {
   ADMIN: UserRole.ADMIN,

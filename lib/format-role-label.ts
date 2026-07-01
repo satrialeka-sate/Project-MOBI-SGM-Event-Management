@@ -1,4 +1,4 @@
-import { UserRole } from "@prisma/client";
+import { UserRole } from "@/constants/prisma-enums";
 
 const ROLE_LABELS: Record<UserRole, string> = {
   [UserRole.ADMIN]: "Admin",
