@@ -1,4 +1,4 @@
-import { UserRole } from "@prisma/client";
+import { UserRole } from "@/constants/prisma-enums";
 import type { ActorContext } from "@/types/auth";
 
 /**

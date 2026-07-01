@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { UserRole } from "@prisma/client";
+import { UserRole } from "@/constants/prisma-enums";
 import { userApi } from "@/lib/api/user";
 
 const USERS_KEY = "users";

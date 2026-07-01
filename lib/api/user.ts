@@ -1,7 +1,7 @@
 import api from "@/lib/axios";
 import type { ApiResponse } from "./permitter";
 
-import type { UserRole } from "@prisma/client";
+import type { UserRole } from "@/constants/prisma-enums";
 
 export interface UserItem {
   id: string;
