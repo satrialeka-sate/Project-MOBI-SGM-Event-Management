@@ -4,7 +4,8 @@ import { PERMISSIONS } from "@/constants/permissions";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { handleApiError } from "@/lib/errors";
 import type { ActorContext } from "@/types/auth";
-import { eventService } from "@/services/event.service";
+import { createContactSchema } from "@/validations/contact";
+import { contactService } from "@/services/contact.service";
 
 export const GET = auth(async function GET(request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -13,9 +14,12 @@ export const GET = auth(async function GET(request, { params }: { params: Promis
       return errorResponse("Unauthorized", [], 401);
     }
 
-    requirePermission(session.user.role, PERMISSIONS.EVENTS.READ);
+    requirePermission(session.user.role, PERMISSIONS.CONTACTS.READ);
 
     const { id } = await params;
+    const url = new URL(request.url);
+    const page = Number(url.searchParams.get("page")) || 1;
+    const limit = Number(url.searchParams.get("limit")) || 10;
 
     const actor: ActorContext = {
       id: session.user.id,
@@ -25,51 +29,30 @@ export const GET = auth(async function GET(request, { params }: { params: Promis
       regionId: session.user.regionId,
     };
 
-    const event = await eventService.getById(actor, id);
-    return successResponse(event, "Event retrieved successfully");
+    const result = await contactService.list(actor, id, { page, limit });
+    return successResponse(result, "Contacts retrieved successfully");
   } catch (error) {
     return handleApiError(error);
   }
 });
 
-export const PATCH = auth(async function PATCH(request, { params }: { params: Promise<{ id: string }> }) {
+export const POST = auth(async function POST(request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = request.auth;
     if (!session?.user) {
       return errorResponse("Unauthorized", [], 401);
     }
 
-    requirePermission(session.user.role, PERMISSIONS.EVENTS.UPDATE);
+    requirePermission(session.user.role, PERMISSIONS.CONTACTS.CREATE);
 
     const { id } = await params;
 
     const body = await request.json();
-    const actor: ActorContext = {
-      id: session.user.id,
-      role: session.user.role,
-      level: session.user.level,
-      scope: session.user.scope,
-      regionId: session.user.regionId,
-    };
-
-    const event = await eventService.update(actor, id, body);
-    return successResponse(event, "Event updated successfully");
-  } catch (error) {
-    return handleApiError(error);
-  }
-});
-
-export const DELETE = auth(async function DELETE(request, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const session = request.auth;
-    if (!session?.user) {
-      return errorResponse("Unauthorized", [], 401);
+    const parsed = createContactSchema.safeParse(body);
+    if (!parsed.success) {
+      return errorResponse("Validation failed", [], 422);
     }
 
-    requirePermission(session.user.role, PERMISSIONS.EVENTS.DELETE);
-
-    const { id } = await params;
-
     const actor: ActorContext = {
       id: session.user.id,
       role: session.user.role,
@@ -78,8 +61,8 @@ export const DELETE = auth(async function DELETE(request, { params }: { params: 
       regionId: session.user.regionId,
     };
 
-    await eventService.delete(actor, id);
-    return successResponse(null, "Event deleted successfully");
+    const contact = await contactService.create(actor, id, parsed.data);
+    return successResponse(contact, "Contact created successfully", 201);
   } catch (error) {
     return handleApiError(error);
   }

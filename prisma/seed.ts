@@ -283,6 +283,125 @@ const users = [
   }
 
   console.log("✅ Users seeded");
+
+  // ── Master Products ─────────────────────────────────────────────────────
+ const products = [
+  {
+    productName: "SGM 1+ 150gr MADU",
+    price: 15800,
+    package: "PAKET 1",
+    gimmick: "Sticker",
+  },
+  {
+    productName: "SGM 1+ 150gr VANILLA",
+    price: 15800,
+    package: "PAKET 1",
+    gimmick: "Sticker",
+  },
+  {
+    productName: "SGM 1+ 400gr MADU",
+    price: 41800,
+    package: "PAKET 2",
+    gimmick: "Pensil warna",
+  },
+  {
+    productName: "SGM 1+ 400gr VANILLA",
+    price: 41800,
+    package: "PAKET 2",
+    gimmick: "Pensil warna",
+  },
+  {
+    productName: "SGM 1+ 900gr MADU",
+    price: 71400,
+    package: "PAKET 3",
+    gimmick: "Tas",
+  },
+  {
+    productName: "SGM 1+ 900gr VANILLA",
+    price: 71400,
+    package: "PAKET 3",
+    gimmick: "Tas",
+  },
+  {
+    productName: "SGM 3+ 150gr MADU",
+    price: 15800,
+    package: "PAKET 1",
+    gimmick: "Sticker",
+  },
+  {
+    productName: "SGM 3+ 400gr MADU",
+    price: 41800,
+    package: "PAKET 2",
+    gimmick: "Pensil warna",
+  },
+  {
+    productName: "SGM 3+ 400gr VANILLA",
+    price: 41800,
+    package: "PAKET 2",
+    gimmick: "Pensil warna",
+  },
+  {
+    productName: "SGM 3+ 400gr COKLAT",
+    price: 41800,
+    package: "PAKET 2",
+    gimmick: "Pensil warna",
+  },
+  {
+    productName: "SGM 3+ 900gr MADU",
+    price: 76200,
+    package: "PAKET 3",
+    gimmick: "Tas",
+  },
+  {
+    productName: "SGM 3+ 900gr VANILLA",
+    price: 76200,
+    package: "PAKET 3",
+    gimmick: "Tas",
+  },
+  {
+    productName: "SGM 3+ 900gr COKLAT",
+    price: 76200,
+    package: "PAKET 3",
+    gimmick: "Tas",
+  },
+  {
+    productName: "SGM 5+ 400gr MADU",
+    price: 35600,
+    package: "PAKET 2",
+    gimmick: "Pensil warna",
+  },
+  {
+    productName: "SGM 5+ 900gr MADU",
+    price: 71400,
+    package: "PAKET 3",
+    gimmick: "Tas",
+  },
+  {
+    productName: "SGM 5+ 900gr COKLAT",
+    price: 71400,
+    package: "PAKET 3",
+    gimmick: "Tas",
+  },
+];
+
+  for (const product of products) {
+    await prisma.masterProduct.upsert({
+      where: { productName: product.productName },
+      update: {
+        price: product.price,
+        package: product.package,
+        gimmick: product.gimmick,
+      },
+      create: {
+        productName: product.productName,
+        price: product.price,
+        package: product.package,
+        gimmick: product.gimmick,
+      },
+    });
+  }
+
+  console.log("✅ Master Products seeded");
 }
 
 main()

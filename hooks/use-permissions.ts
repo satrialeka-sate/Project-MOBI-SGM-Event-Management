@@ -41,10 +41,12 @@ export function usePermissions() {
     canReadSelling: can.selling.read(role),
     canCreateSelling: can.selling.create(role),
     canUpdateSelling: can.selling.update(role),
+    canDeleteSelling: can.selling.delete(role),
 
     canReadContact: can.contact.read(role),
     canCreateContact: can.contact.create(role),
     canUpdateContact: can.contact.update(role),
+    canDeleteContact: can.contact.delete(role),
 
     canReadUser: can.user.read(role),
     canReadRegion: can.region.read(role),

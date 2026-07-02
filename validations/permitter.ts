@@ -28,7 +28,7 @@ export const createPermitterSchema = z.object({
     .min(8, "Venue PIC phone must be at least 8 characters")
     .max(20, "Venue PIC phone must be at most 20 characters"),
   eventDate: z.coerce.date({ message: "Event date is required" }),
-  status: z.string().default("active"),
+  status: z.enum(["PENDING", "APPROVED", "REJECTED"]).default("PENDING"),
   schools: z
     .array(schoolSchema)
     .min(1, "At least 1 school is required")
@@ -48,7 +48,7 @@ export const updatePermitterSchema = z.object({
     .max(20, "Venue PIC phone must be at most 20 characters")
     .optional(),
   eventDate: z.coerce.date({ message: "Event date is required" }).optional(),
-  status: z.string().optional(),
+  status: z.enum(["PENDING", "APPROVED", "REJECTED"]).optional(),
   schools: z
     .array(schoolSchema)
     .min(1, "At least 1 school is required")

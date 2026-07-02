@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { LogOut, Menu, X, Home, ClipboardList } from "lucide-react";
+import { LogOut, Menu, X, Home, ClipboardList, Calendar } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -12,7 +12,7 @@ export default function AppHeader() {
   const { data: session } = useSession();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
-  const { canReadPermitter } = usePermissions();
+  const { canReadPermitter, canReadEvent } = usePermissions();
 
   if (!session?.user) return null;
 
@@ -22,6 +22,12 @@ export default function AppHeader() {
       icon: Home,
       href: "/dashboard",
       show: true,
+    },
+    {
+      label: "Events",
+      icon: Calendar,
+      href: "/events",
+      show: canReadEvent,
     },
     {
       label: "Permitters",

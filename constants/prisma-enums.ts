@@ -17,3 +17,21 @@ export const UserRole = {
 } as const;
 
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
+
+export const PermitterStatus = {
+  PENDING: "PENDING" as const,
+  APPROVED: "APPROVED" as const,
+  REJECTED: "REJECTED" as const,
+} as const;
+
+export type PermitterStatus = (typeof PermitterStatus)[keyof typeof PermitterStatus];
+
+export const PreviousMilk = {
+  SGM: "SGM" as const,
+  SUSU_BUBUK: "SUSU_BUBUK" as const,
+  NON_SUSU_BUBUK: "NON_SUSU_BUBUK" as const,
+  NEW_TO_GUM: "NEW_TO_GUM" as const,
+  OTHERS: "OTHERS" as const,
+} as const;
+
+export type PreviousMilk = (typeof PreviousMilk)[keyof typeof PreviousMilk];

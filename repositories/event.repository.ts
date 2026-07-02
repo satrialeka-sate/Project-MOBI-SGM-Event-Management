@@ -1,36 +1,61 @@
 import { prisma } from "@/lib/prisma";
-import type { Prisma, $Enums } from "@prisma/client";
-import type { CreateEventInput, UpdateEventInput, EventQueryParams } from "@/types/event";
+import type { Prisma } from "@prisma/client";
+import type { EventQueryParams } from "@/types/event";
 
-const eventPermitterInclude = {
-  permitter: { select: { id: true, name: true } },
-  spg: { select: { id: true, name: true } },
-  region: { select: { id: true, name: true } },
-  schools: {
-    orderBy: { order: "asc" as const },
+const eventInclude = {
+  permitter: {
+    include: {
+      permitter: { select: { id: true, name: true } },
+      spg: { select: { id: true, name: true } },
+      region: { select: { id: true, name: true } },
+      schools: {
+        orderBy: { order: "asc" as const },
+      },
+    },
   },
-} satisfies Prisma.PermitterInclude;
+  region: { select: { id: true, name: true } },
+} satisfies Prisma.EventInclude;
 
-type PermitterForEvent = Prisma.PermitterGetPayload<{ include: typeof eventPermitterInclude }>;
+type EventWithRelations = Prisma.EventGetPayload<{ include: typeof eventInclude }>;
 
 interface FindAllResult {
-  events: Array<{
-    id: string;
-    permitterId: string;
-    startTime: Date | null;
-    endTime: Date | null;
-    actualStartTime: Date | null;
-    actualEndTime: Date | null;
-    startedById: string | null;
-    completedById: string | null;
-    notes: string | null;
-    photoUrl: string | null;
-    status: string;
-    createdAt: Date;
-    updatedAt: Date;
-    permitter: PermitterForEvent;
-  }>;
+  events: EventWithRelations[];
   total: number;
+}
+
+function computeStatus(eventDate: Date): "UPCOMING" | "ONGOING" | "COMPLETED" {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const evDate = new Date(eventDate);
+  evDate.setHours(0, 0, 0, 0);
+
+  if (evDate.getTime() === today.getTime()) return "ONGOING";
+  if (evDate > today) return "UPCOMING";
+  return "COMPLETED";
+}
+
+/**
+ * Convert a status filter to a date-based Prisma where clause.
+ * This ensures pagination works correctly with computed status.
+ */
+function statusToDateFilter(status?: string): Prisma.DateTimeFilter | undefined {
+  if (!status) return undefined;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(today);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  switch (status) {
+    case "ONGOING":
+      return { gte: today, lte: endOfDay };
+    case "UPCOMING":
+      return { gt: endOfDay };
+    case "COMPLETED":
+      return { lt: today };
+    default:
+      return undefined;
+  }
 }
 
 export const eventRepository = {
@@ -41,8 +66,6 @@ export const eventRepository = {
       search,
       status,
       regionId,
-      permitterId,
-      spgId,
       sortBy = "eventDate",
       sortOrder = "desc",
     } = params;
@@ -59,20 +82,14 @@ export const eventRepository = {
       };
     }
 
-    if (status) {
-      where.status = status as $Enums.EventStatus;
-    }
-
     if (regionId) {
-      permitterFilter = { ...permitterFilter, regionId };
+      where.regionId = regionId;
     }
 
-    if (permitterId) {
-      where.permitterId = permitterId;
-    }
-
-    if (spgId) {
-      permitterFilter = { ...permitterFilter, spgId };
+    // Convert status filter to date-based filter for correct pagination
+    const dateFilter = statusToDateFilter(status);
+    if (dateFilter) {
+      where.eventDate = dateFilter;
     }
 
     if (Object.keys(permitterFilter).length > 0) {
@@ -83,19 +100,13 @@ export const eventRepository = {
       [sortBy]: sortOrder,
     };
 
-    const include = {
-      permitter: {
-        include: eventPermitterInclude,
-      },
-    } satisfies Prisma.EventInclude;
-
     const [events, total] = await Promise.all([
       prisma.event.findMany({
         where,
         orderBy,
         skip: (page - 1) * limit,
         take: limit,
-        include,
+        include: eventInclude,
       }),
       prisma.event.count({ where }),
     ]);
@@ -106,11 +117,7 @@ export const eventRepository = {
   async findById(id: string) {
     return prisma.event.findUnique({
       where: { id },
-      include: {
-        permitter: {
-          include: eventPermitterInclude,
-        },
-      },
+      include: eventInclude,
     });
   },
 
@@ -120,42 +127,41 @@ export const eventRepository = {
     });
   },
 
-  async findPermitterById(id: string) {
-    return prisma.permitter.findUnique({
-      where: { id },
-      include: {
-        permitter: { select: { id: true, name: true, role: true } },
-        region: { select: { id: true, name: true } },
-      },
-    });
-  },
-
-  async create(data: CreateEventInput) {
+  async create(data: {
+    permitterId: string;
+    regionId: string;
+    venueName: string;
+    venueAddress: string;
+    eventDate: Date;
+  }) {
     return prisma.event.create({
       data: {
         permitterId: data.permitterId,
+        regionId: data.regionId,
+        venueName: data.venueName,
+        venueAddress: data.venueAddress,
+        eventDate: data.eventDate,
       },
-      include: {
-        permitter: {
-          include: eventPermitterInclude,
-        },
-      },
+      include: eventInclude,
     });
   },
 
-  async update(id: string, data: UpdateEventInput) {
+  async update(id: string, data: {
+    regionId?: string;
+    venueName?: string;
+    venueAddress?: string;
+    eventDate?: Date;
+  }) {
     return prisma.event.update({
       where: { id },
       data,
-      include: {
-        permitter: {
-          include: eventPermitterInclude,
-        },
-      },
+      include: eventInclude,
     });
   },
 
   async delete(id: string) {
     return prisma.event.delete({ where: { id } });
   },
+
+  computeStatus,
 };

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import type { Prisma } from "@prisma/client";
+import type { Prisma, $Enums } from "@prisma/client";
 import type { CreatePermitterInput, UpdatePermitterInput, PermitterQueryParams } from "@/types/permitter";
 
 const permitterInclude = {
@@ -61,7 +61,7 @@ export const permitterRepository = {
     }
 
     if (status) {
-      where.status = status;
+      where.status = status as $Enums.PermitterStatus;
     }
 
     const orderBy: Prisma.PermitterOrderByWithRelationInput = {
@@ -103,7 +103,7 @@ export const permitterRepository = {
           venuePIC: data.venuePIC,
           venuePICPhone: data.venuePICPhone,
           eventDate: data.eventDate,
-          status: data.status ?? "active",
+          status: (data.status ?? "PENDING") as $Enums.PermitterStatus,
           schools: {
             create: data.schools.map((school, index) => ({
               name: school.name,
@@ -127,7 +127,10 @@ export const permitterRepository = {
 
       const permitter = await tx.permitter.update({
         where: { id },
-        data: permitterData,
+        data: {
+          ...permitterData,
+          status: permitterData.status as $Enums.PermitterStatus,
+        },
         include: permitterInclude,
       });
 

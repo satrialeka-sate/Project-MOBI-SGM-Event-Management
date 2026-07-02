@@ -1,25 +1,23 @@
-export type EventStatus = "SCHEDULED" | "ONGOING" | "COMPLETED" | "CANCELLED";
+export type EventStatus = "UPCOMING" | "ONGOING" | "COMPLETED";
 
 export interface EventResponse {
   id: string;
   permitterId: string;
-  permitterName: string;
   regionId: string;
   regionName: string;
-  cycle: string;
   venueName: string;
   venueAddress: string;
-  venuePIC: string;
-  eventDate: Date;
-  startTime: Date | null;
-  endTime: Date | null;
-  actualStartTime: Date | null;
-  actualEndTime: Date | null;
-  startedById: string | null;
-  completedById: string | null;
-  notes: string | null;
-  photoUrl: string | null;
+  eventDate: string;
   status: EventStatus;
+  permitterName: string;
+  permitterUser?: {
+    id: string;
+    name: string;
+  };
+  spg?: {
+    id: string;
+    name: string;
+  } | null;
   schools: Array<{
     id: string;
     name: string;
@@ -29,24 +27,8 @@ export interface EventResponse {
     picPhone: string;
     order: number;
   }>;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface CreateEventInput {
-  permitterId: string;
-}
-
-export interface UpdateEventInput {
-  startTime?: string | null;
-  endTime?: string | null;
-  actualStartTime?: string | null;
-  actualEndTime?: string | null;
-  startedById?: string | null;
-  completedById?: string | null;
-  notes?: string | null;
-  photoUrl?: string | null;
-  status?: EventStatus;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface EventQueryParams {
@@ -55,9 +37,8 @@ export interface EventQueryParams {
   search?: string;
   status?: string;
   regionId?: string;
-  permitterId?: string;
-  spgId?: string;
-  sortBy?: "eventDate" | "createdAt" | "updatedAt" | "status";
+  date?: string;
+  sortBy?: string;
   sortOrder?: "asc" | "desc";
 }
 
