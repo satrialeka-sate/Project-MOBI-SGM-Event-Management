@@ -1,12 +1,6 @@
 import { eventRepository } from "@/repositories/event.repository";
-import type {
-  CreateEventInput,
-  UpdateEventInput,
-  EventQueryParams,
-  EventResponse,
-  EventStatus,
-  PaginatedResponse,
-} from "@/types/event";
+import { permitterRepository } from "@/repositories/permitter.repository";
+import type { EventQueryParams, EventResponse, EventStatus, PaginatedResponse } from "@/types/event";
 import type { ActorContext } from "@/types/auth";
 import { AppError } from "@/lib/errors";
 import { canAccessRegion, applyRegionFilter } from "@/lib/scope";
@@ -14,21 +8,15 @@ import { canAccessRegion, applyRegionFilter } from "@/lib/scope";
 function toEventResponse(event: {
   id: string;
   permitterId: string;
-  startTime: Date | null;
-  endTime: Date | null;
-  actualStartTime: Date | null;
-  actualEndTime: Date | null;
-  startedById: string | null;
-  completedById: string | null;
-  notes: string | null;
-  photoUrl: string | null;
-  status: string;
+  regionId: string;
+  venueName: string;
+  venueAddress: string;
+  eventDate: Date;
   createdAt: Date;
   updatedAt: Date;
   permitter: {
     id: string;
     permitterId: string;
-    spgId: string | null;
     regionId: string;
     cycle: string;
     venueName: string;
@@ -48,27 +36,22 @@ function toEventResponse(event: {
       order: number;
     }>;
   };
+  region: { id: string; name: string };
 }): EventResponse {
+  const status = eventRepository.computeStatus(event.eventDate);
+
   return {
     id: event.id,
     permitterId: event.permitterId,
+    regionId: event.regionId,
+    regionName: event.region.name,
+    venueName: event.venueName,
+    venueAddress: event.venueAddress,
+    eventDate: event.eventDate.toISOString(),
+    status: status as EventStatus,
     permitterName: event.permitter.permitter.name,
-    regionId: event.permitter.regionId,
-    regionName: event.permitter.region.name,
-    cycle: event.permitter.cycle,
-    venueName: event.permitter.venueName,
-    venueAddress: event.permitter.venueAddress,
-    venuePIC: event.permitter.venuePIC,
-    eventDate: event.permitter.eventDate,
-    startTime: event.startTime,
-    endTime: event.endTime,
-    actualStartTime: event.actualStartTime,
-    actualEndTime: event.actualEndTime,
-    startedById: event.startedById,
-    completedById: event.completedById,
-    notes: event.notes,
-    photoUrl: event.photoUrl,
-    status: event.status as EventStatus,
+    permitterUser: event.permitter.permitter,
+    spg: event.permitter.spg,
     schools: event.permitter.schools.map((s) => ({
       id: s.id,
       name: s.name,
@@ -78,8 +61,8 @@ function toEventResponse(event: {
       picPhone: s.picPhone,
       order: s.order,
     })),
-    createdAt: event.createdAt,
-    updatedAt: event.updatedAt,
+    createdAt: event.createdAt.toISOString(),
+    updatedAt: event.updatedAt.toISOString(),
   };
 }
 
@@ -90,10 +73,15 @@ export const eventService = {
   ): Promise<PaginatedResponse<EventResponse>> {
     const filteredParams = applyRegionFilter(params, actor);
     const { page = 1, limit = 10 } = filteredParams;
+
+    // Status filtering is now handled at the DB level via date-based filtering
+    // in eventRepository.findAll() — no need to filter in-memory anymore
     const { events, total } = await eventRepository.findAll(filteredParams);
 
+    const mappedEvents = events.map(toEventResponse);
+
     return {
-      items: events.map(toEventResponse),
+      items: mappedEvents,
       total,
       page,
       limit,
@@ -107,65 +95,61 @@ export const eventService = {
       throw new AppError("Event not found", 404);
     }
 
-    // Verify actor has access to this event's region
-    if (!canAccessRegion(actor.regionId, event.permitter.regionId, actor.scope)) {
+    if (!canAccessRegion(actor.regionId, event.regionId, actor.scope)) {
       throw new AppError("Forbidden: you do not have access to this event", 403);
     }
 
     return toEventResponse(event);
   },
 
-  async create(
-    actor: ActorContext,
-    data: CreateEventInput
+  async createFromPermitter(
+    permitterId: string,
+    regionId: string,
+    venueName: string,
+    venueAddress: string,
+    eventDate: Date
   ): Promise<EventResponse> {
-    // Verify permitter exists and get its details
-    const permitter = await eventRepository.findPermitterById(
-      data.permitterId
-    );
-    if (!permitter) {
-      throw new AppError("Permitter not found", 404);
-    }
-
-    // Verify actor has access to the permitter's region
-    if (!canAccessRegion(actor.regionId, permitter.regionId, actor.scope)) {
-      throw new AppError(
-        "Forbidden: you do not have access to this permitter's region",
-        403
-      );
-    }
-
     // Check that no event already exists for this permitter
-    const existingEvent = await eventRepository.findByPermitterId(
-      data.permitterId
-    );
+    const existingEvent = await eventRepository.findByPermitterId(permitterId);
     if (existingEvent) {
-      throw new AppError(
-        "An event already exists for this permitter",
-        409
-      );
+      // Event already exists, just return it
+      const event = await eventRepository.findById(existingEvent.id);
+      if (!event) throw new AppError("Event not found", 404);
+      return toEventResponse(event);
     }
 
-    const event = await eventRepository.create(data);
+    const event = await eventRepository.create({
+      permitterId,
+      regionId,
+      venueName,
+      venueAddress,
+      eventDate,
+    });
+
     return toEventResponse(event);
   },
 
   async update(
     actor: ActorContext,
     id: string,
-    data: UpdateEventInput
+    data: { regionId?: string; venueName?: string; venueAddress?: string; eventDate?: string }
   ): Promise<EventResponse> {
     const existing = await eventRepository.findById(id);
     if (!existing) {
       throw new AppError("Event not found", 404);
     }
 
-    // Verify actor has access to this event's region
-    if (!canAccessRegion(actor.regionId, existing.permitter.regionId, actor.scope)) {
+    if (!canAccessRegion(actor.regionId, existing.regionId, actor.scope)) {
       throw new AppError("Forbidden: you do not have access to this event", 403);
     }
 
-    const event = await eventRepository.update(id, data);
+    const updateData: Record<string, unknown> = {};
+    if (data.regionId) updateData.regionId = data.regionId;
+    if (data.venueName) updateData.venueName = data.venueName;
+    if (data.venueAddress) updateData.venueAddress = data.venueAddress;
+    if (data.eventDate) updateData.eventDate = new Date(data.eventDate);
+
+    const event = await eventRepository.update(id, updateData as Parameters<typeof eventRepository.update>[1]);
     return toEventResponse(event);
   },
 
@@ -175,11 +159,18 @@ export const eventService = {
       throw new AppError("Event not found", 404);
     }
 
-    // Verify actor has access to this event's region
-    if (!canAccessRegion(actor.regionId, existing.permitter.regionId, actor.scope)) {
+    if (!canAccessRegion(actor.regionId, existing.regionId, actor.scope)) {
       throw new AppError("Forbidden: you do not have access to this event", 403);
     }
 
+    // Delete event (cascade deletes Attendance, Selling, Contact)
     await eventRepository.delete(id);
+
+    // Delete associated permitter to avoid orphan data
+    try {
+      await permitterRepository.delete(existing.permitterId);
+    } catch {
+      // Permitter may already be deleted, that's fine
+    }
   },
 };

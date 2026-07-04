@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "../generated/prisma/client";
 
 const dashboardInclude = {
-  event: { select: { id: true, status: true } },
+  event: { select: { id: true } },
   region: { select: { name: true } },
   spg: { select: { id: true, name: true, email: true } },
   schools: {

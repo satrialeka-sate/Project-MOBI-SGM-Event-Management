@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Pencil } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
-import StatusBadge from "@/components/StatusBadge";
 import FormSection from "@/components/FormSection";
 import ErrorState from "@/components/ErrorState";
 import { FormSkeleton } from "@/components/LoadingSkeleton";
@@ -59,18 +58,17 @@ export default function ViewPermitterPage({ params }: { params: Promise<{ id: st
           >
             <ArrowLeft className="h-4 w-4" /> Back
           </button>
-          {canUpdatePermitter && (
-            <Button size="sm" onClick={() => router.push(`/permitters/${permitter.id}/edit`)}>
-              <Pencil className="mr-1.5 h-4 w-4" /> Edit
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {canUpdatePermitter && (
+              <Button size="sm" variant="outline" onClick={() => router.push(`/permitters/${permitter.id}/edit`)}>
+                <Pencil className="mr-1.5 h-4 w-4" /> Edit
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="mb-6">
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-gray-900 md:text-2xl">{permitter.venueName}</h1>
-            <StatusBadge status={permitter.status} />
-          </div>
+          <h1 className="text-xl font-bold text-gray-900 md:text-2xl">{permitter.venueName}</h1>
           <p className="mt-1 text-sm text-gray-500">
             {new Date(permitter.eventDate).toLocaleDateString()} · {permitter.regionName}
           </p>
@@ -90,10 +88,6 @@ export default function ViewPermitterPage({ params }: { params: Promise<{ id: st
               <div>
                 <p className="text-gray-500">Cycle</p>
                 <p className="font-medium text-gray-900">{permitter.cycle}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Status</p>
-                <StatusBadge status={permitter.status} />
               </div>
             </div>
           </FormSection>

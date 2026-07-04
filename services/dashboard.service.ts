@@ -22,7 +22,7 @@ export const dashboardService = {
       id: permitter.id,
       eventId: permitter.event?.id ?? null,
       eventDate: permitter.eventDate,
-      status: permitter.event?.status ?? "SCHEDULED",
+      status: "ONGOING",
       region: permitter.region.name,
       cycle: permitter.cycle,
       venue: {
