@@ -7,7 +7,6 @@ import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Eye, Pencil, Trash2, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
-import StatusBadge from "@/components/StatusBadge";
 import SearchBar from "@/components/SearchBar";
 import EmptyState from "@/components/EmptyState";
 import ErrorState from "@/components/ErrorState";
@@ -111,7 +110,6 @@ export default function PermittersPage() {
                     <th className="px-6 py-3">Event Date</th>
                     <th className="px-6 py-3">Venue</th>
                     <th className="px-6 py-3">Region</th>
-                    <th className="px-6 py-3">Status</th>
                     <th className="px-6 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -125,9 +123,6 @@ export default function PermittersPage() {
                         {p.venueName}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">{p.regionName}</td>
-                      <td className="px-6 py-4">
-                        <StatusBadge status={p.status} />
-                      </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-1">
                           <Button variant="ghost" size="icon" onClick={() => router.push(`/permitters/${p.id}`)}>
@@ -159,12 +154,12 @@ export default function PermittersPage() {
                     <span className="text-sm font-medium text-gray-900">
                       {new Date(p.eventDate).toLocaleDateString()}
                     </span>
-                    <StatusBadge status={p.status} />
                   </div>
                   <div className="space-y-1 text-sm text-gray-500">
                     <p><span className="font-medium text-gray-700">Venue:</span> {p.venueName}</p>
                     <p><span className="font-medium text-gray-700">Region:</span> {p.regionName}</p>
                   </div>
+                  <div className="mt-2 text-xs text-gray-400">Cycle: {p.cycle}</div>
                   <div className="mt-3 flex gap-2 border-t pt-3">
                     <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => router.push(`/permitters/${p.id}`)}>
                       <Eye className="mr-1 h-3.5 w-3.5" /> View

@@ -20,7 +20,6 @@ export interface PermitterResponse {
   venuePIC: string;
   venuePICPhone: string;
   eventDate: Date;
-  status: string;
   schools: SchoolResponse[];
   createdAt: Date;
   updatedAt: Date;
@@ -64,7 +63,6 @@ export interface UpdatePermitterInput {
   venuePIC?: string;
   venuePICPhone?: string;
   eventDate?: Date;
-  status?: string;
   schools?: CreateSchoolInput[];
 }
 
@@ -75,8 +73,7 @@ export interface PermitterQueryParams {
   regionId?: string;
   userId?: string;
   date?: Date;
-  status?: string;
-  sortBy?: "eventDate" | "createdAt" | "updatedAt" | "status";
+  sortBy?: "eventDate" | "createdAt" | "updatedAt";
   sortOrder?: "asc" | "desc";
 }
 

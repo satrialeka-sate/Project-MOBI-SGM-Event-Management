@@ -7,6 +7,7 @@ interface EmptyStateProps {
   description?: string;
   actionLabel?: string;
   actionHref?: string;
+  actionOnClick?: () => void;
 }
 
 export default function EmptyState({
@@ -14,6 +15,7 @@ export default function EmptyState({
   description = "There are no records to display yet.",
   actionLabel,
   actionHref,
+  actionOnClick,
 }: EmptyStateProps) {
   const router = useRouter();
 
@@ -24,6 +26,9 @@ export default function EmptyState({
       <p className="mb-6 max-w-xs text-center text-sm text-gray-500">{description}</p>
       {actionLabel && actionHref && (
         <Button onClick={() => router.push(actionHref)}>{actionLabel}</Button>
+      )}
+      {actionLabel && !actionHref && actionOnClick && (
+        <Button onClick={actionOnClick}>{actionLabel}</Button>
       )}
     </div>
   );

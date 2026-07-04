@@ -19,7 +19,7 @@ interface FindAllResult {
 
 export const permitterRepository = {
   async findAll(params: PermitterQueryParams): Promise<FindAllResult> {
-    const { page = 1, limit = 10, search, regionId, userId, date, status, sortBy = "eventDate", sortOrder = "desc" } = params;
+    const { page = 1, limit = 10, search, regionId, userId, date, sortBy = "eventDate", sortOrder = "desc" } = params;
 
     const where: Prisma.PermitterWhereInput = {};
 
@@ -41,7 +41,6 @@ export const permitterRepository = {
         permitterId: userId,
       };
       if (search) {
-        // If search is also active, use AND so search narrows the user filter
         const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
         where.AND = [...existingAnd, userFilter];
       } else {
@@ -58,10 +57,6 @@ export const permitterRepository = {
         gte: startOfDay,
         lte: endOfDay,
       };
-    }
-
-    if (status) {
-      where.status = status;
     }
 
     const orderBy: Prisma.PermitterOrderByWithRelationInput = {
@@ -89,8 +84,6 @@ export const permitterRepository = {
     });
   },
 
-
-
   async createInTransaction(data: CreatePermitterInput) {
     return prisma.$transaction(async (tx) => {
       const permitter = await tx.permitter.create({
@@ -103,7 +96,6 @@ export const permitterRepository = {
           venuePIC: data.venuePIC,
           venuePICPhone: data.venuePICPhone,
           eventDate: data.eventDate,
-          status: data.status ?? "active",
           schools: {
             create: data.schools.map((school, index) => ({
               name: school.name,

@@ -28,6 +28,7 @@ const rolePermissions: Record<Role, readonly string[]> = {
     "permitters.create",
     "permitters.update",
     "regions.read",
+    "schedules.read",
   ],
   [ROLES.SPG]: [
     "events.read",
@@ -51,6 +52,7 @@ const rolePermissions: Record<Role, readonly string[]> = {
     "contacts.read",
     "reports.read",
     "regions.read",
+    "schedules.read",
   ],
 };
 
@@ -99,11 +101,21 @@ export const can = {
   },
   user: {
     read: (role: Role) => hasPermission(role, "users.read"),
+    update: (role: Role) => hasPermission(role, "users.update"),
+  },
+  usersManagement: {
+    create: (role: Role) => hasPermission(role, "users_management.create"),
+    read: (role: Role) => hasPermission(role, "users_management.read"),
+    update: (role: Role) => hasPermission(role, "users_management.update"),
+    delete: (role: Role) => hasPermission(role, "users_management.delete"),
   },
   region: {
     read: (role: Role) => hasPermission(role, "regions.read"),
   },
   report: {
     read: (role: Role) => hasPermission(role, "reports.read"),
+  },
+  schedule: {
+    read: (role: Role) => hasPermission(role, "schedules.read"),
   },
 } as const;

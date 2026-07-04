@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, List, Calendar, Building2, Loader2 } from "lucide-react";
+import { Calendar, Building2, Loader2, CalendarDays, ClipboardList, CalendarRange } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { usePermissions } from "@/hooks/use-permissions";
 import { usePermitters } from "@/hooks/use-permitters";
+import { useEvents } from "@/hooks/use-events";
 import { formatRoleLabel } from "@/lib/format-role-label";
 
 export default function DashboardPage() {
@@ -20,6 +21,7 @@ export default function DashboardPage() {
     canReadPermitter,
     canReadEvent,
     canReadAttendance,
+    canReadSchedule,
   } = usePermissions();
 
   const { data: permitterData, isLoading } = usePermitters({
@@ -27,11 +29,12 @@ export default function DashboardPage() {
     enabled: canReadPermitter,
   });
 
-  const { data: todayData } = usePermitters({
+  // Dashboard uses Event data (not Permitter) for event counts
+  const { data: eventsTodayData } = useEvents({
     limit: 5,
-    date: today,
+    status: "ONGOING",
     sortOrder: "asc",
-    enabled: canReadPermitter || canReadEvent,
+    enabled: canReadEvent,
   });
 
   useEffect(() => {
@@ -94,9 +97,9 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-gray-900">
-                    {todayData?.total ?? "-"}
+                    {eventsTodayData?.total ?? "-"}
                   </p>
-                  <p className="text-sm text-gray-500">Upcoming Events</p>
+                  <p className="text-sm text-gray-500">Today&apos;s Events</p>
                 </div>
               </CardContent>
             </Card>
@@ -120,14 +123,14 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row">
-          {canCreatePermitter && (
+          {canReadEvent && (
             <Button
               size="lg"
               className="h-12 flex-1 bg-sgm-red text-base text-white hover:bg-sgm-red-dark"
-              onClick={() => router.push("/permitters/new")}
+              onClick={() => router.push("/events")}
             >
-              <Plus className="mr-2 h-5 w-5" />
-              Create Permitter
+              <CalendarDays className="mr-2 h-5 w-5" />
+              Event
             </Button>
           )}
           {canReadPermitter && (
@@ -137,8 +140,19 @@ export default function DashboardPage() {
               className="h-12 flex-1 border-sgm-red text-base text-sgm-red hover:bg-sgm-red-pale hover:text-sgm-red-dark"
               onClick={() => router.push("/permitters")}
             >
-              <List className="mr-2 h-5 w-5" />
-              View Permitters
+              <ClipboardList className="mr-2 h-5 w-5" />
+              Permitter
+            </Button>
+          )}
+          {canReadSchedule && (
+            <Button
+              size="lg"
+              variant="outline"
+              className="h-12 flex-1 border-sgm-red text-base text-sgm-red hover:bg-sgm-red-pale hover:text-sgm-red-dark"
+              onClick={() => router.push("/schedule")}
+            >
+              <CalendarRange className="mr-2 h-5 w-5" />
+              Schedule
             </Button>
           )}
         </div>

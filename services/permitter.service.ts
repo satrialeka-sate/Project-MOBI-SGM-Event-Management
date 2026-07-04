@@ -1,4 +1,5 @@
 import { permitterRepository } from "@/repositories/permitter.repository";
+import { eventRepository } from "@/repositories/event.repository";
 import type {
   CreatePermitterInput,
   UpdatePermitterInput,
@@ -20,7 +21,6 @@ function toPermitterResponse(permitter: {
   venuePIC: string;
   venuePICPhone: string;
   eventDate: Date;
-  status: string;
   createdAt: Date;
   updatedAt: Date;
   permitter: { id: string; name: string; regionId: string };
@@ -47,7 +47,6 @@ function toPermitterResponse(permitter: {
     venuePIC: permitter.venuePIC,
     venuePICPhone: permitter.venuePICPhone,
     eventDate: permitter.eventDate,
-    status: permitter.status,
     schools: permitter.schools.map((s) => ({
       id: s.id,
       name: s.name,
@@ -62,11 +61,6 @@ function toPermitterResponse(permitter: {
   };
 }
 
-/**
- * Enforce region-scoped actor: if actor has REGION scope,
- * force the given regionId to the actor's regionId.
- * Returns the (possibly overridden) regionId.
- */
 function enforceRegionScope(
   regionId: string,
   actor: ActorContext
@@ -101,7 +95,6 @@ export const permitterService = {
       throw new AppError("Permitter not found", 404);
     }
 
-    // Verify actor has access to this permitter's region
     if (!canAccessRegion(actor.regionId, permitter.regionId, actor.scope)) {
       throw new AppError("Forbidden: you do not have access to this permitter", 403);
     }
@@ -113,10 +106,8 @@ export const permitterService = {
     actor: ActorContext,
     data: CreatePermitterInput
   ): Promise<PermitterResponse> {
-    // Enforce region scope: REGION users can only create in their own region
     const resolvedRegionId = enforceRegionScope(data.regionId, actor);
 
-    // Validate eventDate is not in the past
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (data.eventDate < today) {
@@ -125,13 +116,11 @@ export const permitterService = {
       ]);
     }
 
-    // Verify region exists
     const region = await permitterRepository.verifyRegionExists(resolvedRegionId);
     if (!region) {
       throw new AppError("Region not found", 404);
     }
 
-    // Verify permitter user exists
     const permitterUser = await permitterRepository.verifyUserExists(
       data.permitterId
     );
@@ -143,6 +132,21 @@ export const permitterService = {
       ...data,
       regionId: resolvedRegionId,
     });
+
+    // Auto-create Event from this permitter (idempotent: checks for duplicates)
+    const existingEvent = await eventRepository.findByPermitterId(permitter.id);
+    if (!existingEvent) {
+      await eventRepository.create({
+        permitterId: permitter.id,
+        regionId: permitter.regionId,
+        venueName: permitter.venueName,
+        venueAddress: permitter.venueAddress,
+        eventDate: permitter.eventDate,
+      }).catch((err) => {
+        console.error("Failed to auto-create event:", err);
+      });
+    }
+
     return toPermitterResponse(permitter);
   },
 
@@ -156,18 +160,15 @@ export const permitterService = {
       throw new AppError("Permitter not found", 404);
     }
 
-    // Verify actor has access to this permitter's region
     if (!canAccessRegion(actor.regionId, existing.regionId, actor.scope)) {
       throw new AppError("Forbidden: you do not have access to this permitter", 403);
     }
 
-    // Enforce region scope: REGION users cannot change regionId
     const resolvedRegionId = enforceRegionScope(
       data.regionId ?? existing.regionId,
       actor
     );
 
-    // Verify references if they are being changed
     if (resolvedRegionId !== existing.regionId) {
       const region = await permitterRepository.verifyRegionExists(resolvedRegionId);
       if (!region) {
@@ -188,6 +189,7 @@ export const permitterService = {
       ...data,
       regionId: resolvedRegionId,
     });
+
     return toPermitterResponse(permitter);
   },
 
@@ -197,9 +199,14 @@ export const permitterService = {
       throw new AppError("Permitter not found", 404);
     }
 
-    // Verify actor has access to this permitter's region
     if (!canAccessRegion(actor.regionId, existing.regionId, actor.scope)) {
       throw new AppError("Forbidden: you do not have access to this permitter", 403);
+    }
+
+    // Delete associated event first if it exists (cascade will handle Attendance/Selling/Contact)
+    const event = await eventRepository.findByPermitterId(id);
+    if (event) {
+      await eventRepository.delete(event.id);
     }
 
     await permitterRepository.delete(id);

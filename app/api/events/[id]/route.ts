@@ -4,7 +4,6 @@ import { PERMISSIONS } from "@/constants/permissions";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { handleApiError } from "@/lib/errors";
 import type { ActorContext } from "@/types/auth";
-import { updateEventSchema } from "@/validations/event";
 import { eventService } from "@/services/event.service";
 
 export const GET = auth(async function GET(request, { params }: { params: Promise<{ id: string }> }) {
@@ -45,11 +44,6 @@ export const PATCH = auth(async function PATCH(request, { params }: { params: Pr
     const { id } = await params;
 
     const body = await request.json();
-    const parsed = updateEventSchema.safeParse(body);
-    if (!parsed.success) {
-      return errorResponse("Validation failed", [], 422);
-    }
-
     const actor: ActorContext = {
       id: session.user.id,
       role: session.user.role,
@@ -58,7 +52,7 @@ export const PATCH = auth(async function PATCH(request, { params }: { params: Pr
       regionId: session.user.regionId,
     };
 
-    const event = await eventService.update(actor, id, parsed.data);
+    const event = await eventService.update(actor, id, body);
     return successResponse(event, "Event updated successfully");
   } catch (error) {
     return handleApiError(error);
