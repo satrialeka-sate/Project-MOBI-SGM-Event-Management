@@ -1,25 +1,76 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 function LoginForm() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const error = searchParams.get("error");
+
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [clientError, setClientError] = useState<string | null>(null);
 
   const errorMessages: Record<string, string> = {
     EmailNotFound: "Akun email tidak terdaftar. Hubungi administrator.",
     AccountDisabled: "Akun Anda telah dinonaktifkan. Hubungi administrator.",
     AccessDenied: "Akses ditolak. Hubungi administrator.",
     OAuthSignIn: "Terjadi kesalahan saat masuk dengan Google. Coba lagi.",
+    CredentialsSignIn: "Email/Username atau password salah.",
     default: "Terjadi kesalahan. Silakan coba lagi.",
   };
 
-  const errorMessage = error
-    ? errorMessages[error] || errorMessages.default
+  const displayError = clientError || error
+    ? errorMessages[clientError || error || ""] || errorMessages.default
     : null;
+
+  async function handleCredentialsLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setClientError(null);
+
+    // Client-side validation
+    if (!identifier.trim()) {
+      setClientError("Email atau username wajib diisi.");
+      return;
+    }
+    if (!password) {
+      setClientError("Password wajib diisi.");
+      return;
+    }
+    if (password.length < 8) {
+      setClientError("Password minimal 8 karakter.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    const result = await signIn("credentials", {
+      identifier: identifier.trim(),
+      password,
+      redirect: false,
+    });
+
+    setIsLoading(false);
+
+    if (result?.error) {
+      setClientError("Email/Username atau password salah.");
+      return;
+    }
+
+    if (result?.ok) {
+      router.push("/dashboard");
+    }
+  }
+
+  async function handleGoogleLogin() {
+    await signIn("google", { redirectTo: "/dashboard" });
+  }
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#fff8f8] px-4">
@@ -50,31 +101,122 @@ function LoginForm() {
       {/* Login card */}
       <div className="relative w-full max-w-[360px] rounded-xl border border-gray-200 bg-white p-8 shadow-lg">
         {/* Logo */}
-        <div className="mb-7 flex flex-col items-center">
+        <div className="mb-6 flex flex-col items-center">
           <Image
             src="/SGM_logo.svg"
             alt="SGM Logo"
-            width={160}
-            height={160}
+            width={140}
+            height={140}
             priority
           />
-          <p className="mt-4 text-sm text-gray-500">
+          <h1 className="mt-4 text-xl font-semibold text-gray-900">
+            Welcome Back
+          </h1>
+          <p className="mt-1 text-sm text-gray-500">
             Sign in to your account
           </p>
         </div>
 
         {/* Error message */}
-        {errorMessage && (
+        {displayError && (
           <div className="mb-5 rounded-md border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-600">
-            {errorMessage}
+            {displayError}
           </div>
         )}
+
+        {/* Credentials Form */}
+        <form onSubmit={handleCredentialsLogin} className="space-y-4">
+          <div>
+            <label
+              htmlFor="identifier"
+              className="mb-1.5 block text-sm font-medium text-gray-700"
+            >
+              Email or Username
+            </label>
+            <input
+              id="identifier"
+              type="text"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              placeholder="Enter your email or username"
+              disabled={isLoading}
+              className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100 disabled:opacity-50"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="password"
+              className="mb-1.5 block text-sm font-medium text-gray-700"
+            >
+              Password
+            </label>
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                disabled={isLoading}
+                className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-3 pr-10 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100 disabled:opacity-50"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                disabled={isLoading}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-gray-600 disabled:opacity-50"
+                tabIndex={-1}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              type="button"
+              className="text-xs text-red-500 transition-colors hover:text-red-600"
+              tabIndex={-1}
+            >
+              Forgot Password?
+            </button>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-red-500 text-sm font-medium text-white shadow-sm transition-all hover:bg-red-600 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Signing in...
+              </>
+            ) : (
+              "Login"
+            )}
+          </button>
+        </form>
+
+        {/* Divider */}
+        <div className="my-6 flex items-center gap-3">
+          <div className="h-px flex-1 bg-gray-200" />
+          <span className="text-xs font-medium text-gray-400">OR</span>
+          <div className="h-px flex-1 bg-gray-200" />
+        </div>
 
         {/* Google Sign-In Button */}
         <button
           type="button"
-          onClick={() => signIn("google", { redirectTo: "/dashboard" })}
-          className="flex h-12 w-full items-center justify-center gap-3 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:shadow active:scale-[0.98]"
+          onClick={handleGoogleLogin}
+          disabled={isLoading}
+          className="flex h-11 w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:shadow active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden>
             <path
