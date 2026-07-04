@@ -101,6 +101,13 @@ export const can = {
   },
   user: {
     read: (role: Role) => hasPermission(role, "users.read"),
+    update: (role: Role) => hasPermission(role, "users.update"),
+  },
+  usersManagement: {
+    create: (role: Role) => hasPermission(role, "users_management.create"),
+    read: (role: Role) => hasPermission(role, "users_management.read"),
+    update: (role: Role) => hasPermission(role, "users_management.update"),
+    delete: (role: Role) => hasPermission(role, "users_management.delete"),
   },
   region: {
     read: (role: Role) => hasPermission(role, "regions.read"),

@@ -21,7 +21,6 @@ function toPermitterResponse(permitter: {
   venuePIC: string;
   venuePICPhone: string;
   eventDate: Date;
-  status: string;
   createdAt: Date;
   updatedAt: Date;
   permitter: { id: string; name: string; regionId: string };
@@ -48,7 +47,6 @@ function toPermitterResponse(permitter: {
     venuePIC: permitter.venuePIC,
     venuePICPhone: permitter.venuePICPhone,
     eventDate: permitter.eventDate,
-    status: String(permitter.status),
     schools: permitter.schools.map((s) => ({
       id: s.id,
       name: s.name,
@@ -71,45 +69,6 @@ function enforceRegionScope(
     return actor.regionId;
   }
   return regionId;
-}
-
-/**
- * Auto-create an Event when a Permitter is APPROVED.
- * Idempotent: if Event already exists, return it instead of creating duplicate.
- */
-async function handlePermitterApproved(permitter: {
-  id: string;
-  regionId: string;
-  venueName: string;
-  venueAddress: string;
-  eventDate: Date;
-}): Promise<void> {
-  const existingEvent = await eventRepository.findByPermitterId(permitter.id);
-  if (existingEvent) {
-    return; // Idempotent: event already exists
-  }
-
-  await eventRepository.create({
-    permitterId: permitter.id,
-    regionId: permitter.regionId,
-    venueName: permitter.venueName,
-    venueAddress: permitter.venueAddress,
-    eventDate: permitter.eventDate,
-  }).catch((err) => {
-    console.error("Failed to auto-create event:", err);
-  });
-}
-
-/**
- * Delete the associated Event when a Permitter status changes away from APPROVED.
- */
-async function handlePermitterUnapproved(permitterId: string): Promise<void> {
-  const existingEvent = await eventRepository.findByPermitterId(permitterId);
-  if (existingEvent) {
-    await eventRepository.delete(existingEvent.id).catch((err) => {
-      console.error("Failed to delete event on permitter rejection:", err);
-    });
-  }
 }
 
 export const permitterService = {
@@ -171,11 +130,22 @@ export const permitterService = {
 
     const permitter = await permitterRepository.createInTransaction({
       ...data,
-      status: "PENDING",
       regionId: resolvedRegionId,
     });
 
-    // ✅ Event NOT created here — only created when status changes to APPROVED
+    // Auto-create Event from this permitter (idempotent: checks for duplicates)
+    const existingEvent = await eventRepository.findByPermitterId(permitter.id);
+    if (!existingEvent) {
+      await eventRepository.create({
+        permitterId: permitter.id,
+        regionId: permitter.regionId,
+        venueName: permitter.venueName,
+        venueAddress: permitter.venueAddress,
+        eventDate: permitter.eventDate,
+      }).catch((err) => {
+        console.error("Failed to auto-create event:", err);
+      });
+    }
 
     return toPermitterResponse(permitter);
   },
@@ -220,16 +190,6 @@ export const permitterService = {
       regionId: resolvedRegionId,
     });
 
-    // ✅ Handle APPROVED → create event (idempotent)
-    if (data.status === "APPROVED") {
-      await handlePermitterApproved(permitter);
-    }
-
-    // ✅ Handle REJECTED (or other non-APPROVED statuses) → delete event
-    if (data.status && data.status !== "APPROVED" && existing.status === "APPROVED") {
-      await handlePermitterUnapproved(permitter.id);
-    }
-
     return toPermitterResponse(permitter);
   },
 
@@ -243,7 +203,7 @@ export const permitterService = {
       throw new AppError("Forbidden: you do not have access to this permitter", 403);
     }
 
-    // Delete associated event first if it exists (cascade will handle rest)
+    // Delete associated event first if it exists (cascade will handle Attendance/Selling/Contact)
     const event = await eventRepository.findByPermitterId(id);
     if (event) {
       await eventRepository.delete(event.id);

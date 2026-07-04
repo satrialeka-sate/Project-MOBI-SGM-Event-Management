@@ -1,4 +1,5 @@
 import { eventRepository } from "@/repositories/event.repository";
+import { permitterRepository } from "@/repositories/permitter.repository";
 import type { EventQueryParams, EventResponse, EventStatus, PaginatedResponse } from "@/types/event";
 import type { ActorContext } from "@/types/auth";
 import { AppError } from "@/lib/errors";
@@ -162,6 +163,14 @@ export const eventService = {
       throw new AppError("Forbidden: you do not have access to this event", 403);
     }
 
+    // Delete event (cascade deletes Attendance, Selling, Contact)
     await eventRepository.delete(id);
+
+    // Delete associated permitter to avoid orphan data
+    try {
+      await permitterRepository.delete(existing.permitterId);
+    } catch {
+      // Permitter may already be deleted, that's fine
+    }
   },
 };

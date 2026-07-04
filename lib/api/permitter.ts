@@ -18,7 +18,6 @@ export interface PermitterItem {
   venuePIC: string;
   venuePICPhone: string;
   eventDate: string;
-  status: string;
   schools: Array<{
     id: string;
     name: string;
@@ -67,7 +66,6 @@ export interface UpdatePermitterData {
   venuePIC?: string;
   venuePICPhone?: string;
   eventDate?: string;
-  status?: string;
   schools?: Array<{
     name: string;
     schoolAddress: string;
@@ -84,7 +82,6 @@ export interface PermitterQueryParams {
   regionId?: string;
   userId?: string;
   date?: string;
-  status?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
 }

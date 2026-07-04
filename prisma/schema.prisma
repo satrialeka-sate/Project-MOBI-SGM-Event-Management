@@ -4,6 +4,8 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum UserRole {
@@ -78,14 +80,6 @@ enum EventStatus {
   @@map("event_status")
 }
 
-enum PermitterStatus {
-  PENDING
-  APPROVED
-  REJECTED
-
-  @@map("permitter_status")
-}
-
 enum PreviousMilk {
   SGM
   SUSU_BUBUK
@@ -107,7 +101,6 @@ model Permitter {
   venuePIC     String
   venuePICPhone String         @default("")
   eventDate    DateTime
-  status       PermitterStatus @default(PENDING)
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 
