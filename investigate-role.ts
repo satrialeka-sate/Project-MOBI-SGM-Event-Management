@@ -6,12 +6,13 @@
  */
 
 import "dotenv/config";
-import { PrismaClient, UserRole, UserLevel, UserScope } from "@prisma/client";
+import { PrismaClient, UserRole, UserLevel, UserScope } from "./generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 
 async function main() {
   const POOL = new Pool({ connectionString: process.env.DATABASE_URL! });
+  const ADAPTER = new PrismaPg(POOL);
 
   async function getFirstRegionId(): Promise<string> {
     const result = await POOL.query("SELECT id FROM regions LIMIT 1");
@@ -52,7 +53,7 @@ async function main() {
   // ============================================================
   console.log("--- TEST 1: Plain PrismaClient.create() ---");
   try {
-    const prisma = new PrismaClient();
+    const prisma = new PrismaClient({ adapter: ADAPTER });
     const email = "test1-plain-" + UNIQUE_SUFFIX + "@test.com";
     console.log("Creating:", email);
     const user = await prisma.user.create({
@@ -103,7 +104,7 @@ async function main() {
   // ============================================================
   console.log("--- TEST 3: Upsert via Plain PrismaClient ---");
   try {
-    const prisma = new PrismaClient();
+    const prisma = new PrismaClient({ adapter: ADAPTER });
     const email = "test3-upsert-" + UNIQUE_SUFFIX + "@test.com";
     console.log("Upserting:", email);
     const user = await prisma.user.upsert({

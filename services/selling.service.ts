@@ -7,7 +7,7 @@ import type {
   SellingResponse,
   PaginatedResponse,
 } from "@/types/selling";
-import type { $Enums } from "@prisma/client";
+import type { $Enums } from "../generated/prisma/client";
 import type { ActorContext } from "@/types/auth";
 import { AppError } from "@/lib/errors";
 import { canAccessRegion } from "@/lib/scope";

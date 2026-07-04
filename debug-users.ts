@@ -1,9 +1,11 @@
 import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "./generated/prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 
-const prisma = new PrismaClient();
 const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   // 1. Check PostgreSQL enum values
@@ -13,7 +15,7 @@ async function main() {
   // 2. Check users
   const users = await prisma.user.findMany({
     take: 20,
-    select: { email: true, role: true, level: true, scope: true },
+    select: { email: true, role: true, level: true, scope: true, regionId: true },
   });
   console.log("\nUsers in database:");
   users.forEach((u) => console.log("  " + u.email + " -> role=" + u.role + ", level=" + u.level + ", scope=" + u.scope));
@@ -43,7 +45,7 @@ async function main() {
         scope: "REGION" as any,
         regionId: users[0]?.regionId || "none",
       },
-      select: { email: true, role: true, level: true, scope: true },
+      select: { email: true, role: true, level: true, scope: true, regionId: true },
     });
     console.log("Created test user:", JSON.stringify(testUser));
     
@@ -70,7 +72,7 @@ async function main() {
         scope: "ALL" as any,
         regionId: users[0]?.regionId || "none",
       },
-      select: { email: true, role: true, level: true, scope: true },
+      select: { email: true, role: true, level: true, scope: true, regionId: true },
     });
     console.log("Upserted user:", JSON.stringify(upsertedUser));
     await prisma.user.delete({ where: { email: upsertedUser.email } });

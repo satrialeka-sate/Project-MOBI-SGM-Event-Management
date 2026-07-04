@@ -9,7 +9,14 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
 
+  /**
+   * Datasource configuration for Prisma 7.
+   * - url: Direct database URL (used for migrations and schema validation).
+   * - directUrl: Optional; only needed if a separate direct URL is required.
+   *
+   * Runtime connections use PrismaClient with adapter (see lib/prisma.ts).
+   */
   datasource: {
-    url: env("DIRECT_URL"),
+    url: env("DATABASE_URL"),
   },
 });

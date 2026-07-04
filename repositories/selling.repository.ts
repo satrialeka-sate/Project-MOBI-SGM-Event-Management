@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import type { Prisma, $Enums } from "@prisma/client";
+import type { Prisma, $Enums } from "../generated/prisma/client";
 
 const sellingInclude = {
   product: { select: { id: true, productName: true, package: true, price: true, gimmick: true } },

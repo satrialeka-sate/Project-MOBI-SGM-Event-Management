@@ -5,8 +5,162 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+}
+
+model Region {
+  id         String      @id @default(cuid())
+  name       String      @unique
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  events     Event[]
+  permitters Permitter[]
+  users      User[]
+
+  @@map("regions")
+}
+
+model User {
+  id          String       @id @default(cuid())
+  email       String       @unique
+  name        String
+  password    String?
+  regionId    String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  level       UserLevel    @default(PERMITTER)
+  scope       UserScope    @default(REGION)
+  googleId    String?      @unique
+  image       String?
+  isActive    Boolean      @default(true)
+  lastLoginAt DateTime?
+  role        UserRole     @default(PERMITTER)
+  username    String?      @unique
+  attendances Attendance[]
+  permitters  Permitter[]  @relation("PermitterUser")
+  spgEvents   Permitter[]  @relation("SPGUser")
+  region      Region       @relation(fields: [regionId], references: [id])
+
+  @@map("users")
+}
+
+model Permitter {
+  id            String            @id @default(cuid())
+  permitterId   String
+  spgId         String?
+  eventDate     DateTime
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  cycle         String
+  regionId      String
+  venueAddress  String
+  venueName     String
+  venuePIC      String
+  venuePICPhone String            @default("")
+  status        permitter_status  @default(PENDING)
+  event         Event?
+  schools       PermitterSchool[]
+  permitter     User              @relation("PermitterUser", fields: [permitterId], references: [id])
+  region        Region            @relation(fields: [regionId], references: [id])
+  spg           User?             @relation("SPGUser", fields: [spgId], references: [id])
+
+  @@map("permitters")
+}
+
+model MasterProduct {
+  id          String    @id @default(cuid())
+  productName String    @unique
+  gimmick     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  price       Int
+  package     String    @default("")
+  sellings    Selling[]
+
+  @@map("master_products")
+}
+
+model Event {
+  id           String       @id @default(cuid())
+  permitterId  String       @unique
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  eventDate    DateTime
+  regionId     String
+  venueAddress String
+  venueName    String
+  attendances  Attendance[]
+  contacts     Contact[]
+  permitter    Permitter    @relation(fields: [permitterId], references: [id])
+  region       Region       @relation(fields: [regionId], references: [id])
+  sellings     Selling[]
+
+  @@index([eventDate])
+  @@map("events")
+}
+
+model Attendance {
+  id           String   @id @default(cuid())
+  eventId      String
+  photo        String
+  attendanceAt DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  userId       String
+  event        Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id])
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@map("attendances")
+}
+
+model Selling {
+  id           String        @id @default(cuid())
+  eventId      String
+  sellingDate  DateTime      @default(now())
+  previousMilk PreviousMilk
+  productId    String
+  createdBy    String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  gimmick      String
+  productName  String
+  event        Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  product      MasterProduct @relation(fields: [productId], references: [id])
+
+  @@index([eventId])
+  @@map("sellings")
+}
+
+model Contact {
+  id           String   @id @default(cuid())
+  eventId      String
+  contactDate  DateTime @default(now())
+  totalContact Int
+  createdBy    String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  event        Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@map("contacts")
+}
+
+model PermitterSchool {
+  id            String    @id @default(cuid())
+  permitterId   String
+  name          String
+  order         Int
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  schoolAddress String
+  totalStudents Int
+  picName       String
+  picPhone      String
+  permitter     Permitter @relation(fields: [permitterId], references: [id], onDelete: Cascade)
+
+  @@unique([permitterId, order])
+  @@map("permitter_schools")
 }
 
 enum UserRole {
@@ -35,44 +189,6 @@ enum UserScope {
   @@map("user_scope")
 }
 
-model Region {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  users      User[]
-  permitters Permitter[]
-  events     Event[]
-
-  @@map("regions")
-}
-
-model User {
-  id          String    @id @default(cuid())
-  email       String    @unique
-  username    String?   @unique
-  name        String
-  password    String?
-  googleId    String?   @unique
-  image       String?
-  isActive    Boolean   @default(true)
-  lastLoginAt DateTime?
-  role        UserRole  @default(PERMITTER)
-  level       UserLevel @default(PERMITTER)
-  scope       UserScope @default(REGION)
-  regionId    String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  region      Region       @relation(fields: [regionId], references: [id])
-  permitters  Permitter[]  @relation("PermitterUser")
-  spgEvents   Permitter[]  @relation("SPGUser")
-  attendances Attendance[]
-
-  @@map("users")
-}
-
 enum EventStatus {
   UPCOMING
   ONGOING
@@ -91,128 +207,8 @@ enum PreviousMilk {
   @@map("previous_milk")
 }
 
-model Permitter {
-  id           String          @id @default(cuid())
-  permitterId  String
-  spgId        String?
-  regionId     String
-  cycle        String
-  venueName    String
-  venueAddress String
-  venuePIC     String
-  venuePICPhone String         @default("")
-  eventDate    DateTime
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-
-  permitter User              @relation("PermitterUser", fields: [permitterId], references: [id])
-  spg       User?             @relation("SPGUser", fields: [spgId], references: [id])
-  region    Region            @relation(fields: [regionId], references: [id])
-  schools   PermitterSchool[]
-  event     Event?
-
-  @@map("permitters")
-}
-
-model MasterProduct {
-  id          String   @id @default(cuid())
-  productName String   @unique
-  price       Int
-  package     String   @default("")
-  gimmick     String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  sellings Selling[]
-
-  @@map("master_products")
-}
-
-model Event {
-  id           String   @id @default(cuid())
-  permitterId  String   @unique
-  regionId     String
-  venueName    String
-  venueAddress String
-  eventDate    DateTime
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  permitter   Permitter   @relation(fields: [permitterId], references: [id])
-  region      Region      @relation(fields: [regionId], references: [id])
-  attendances Attendance[]
-  sellings    Selling[]
-  contacts    Contact[]
-
-  @@index([eventDate])
-  @@map("events")
-}
-
-model Attendance {
-  id           String   @id @default(cuid())
-  eventId      String
-  userId       String
-  photo        String
-  attendanceAt DateTime @default(now())
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id])
-
-  @@unique([eventId, userId])
-  @@index([eventId])
-  @@map("attendances")
-}
-
-model Selling {
-  id           String      @id @default(cuid())
-  eventId      String
-  sellingDate  DateTime    @default(now())
-  previousMilk PreviousMilk
-  productId    String
-  productName  String
-  gimmick      String
-  createdBy    String
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-
-  event   Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  product MasterProduct @relation(fields: [productId], references: [id])
-
-  @@index([eventId])
-  @@map("sellings")
-}
-
-model Contact {
-  id           String   @id @default(cuid())
-  eventId      String
-  contactDate  DateTime @default(now())
-  totalContact Int
-  createdBy    String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
-
-  @@index([eventId])
-  @@map("contacts")
-}
-
-model PermitterSchool {
-  id            String   @id @default(cuid())
-  permitterId   String
-  name          String
-  schoolAddress String
-  totalStudents Int
-  picName       String
-  picPhone      String
-  order         Int
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  permitter Permitter @relation(fields: [permitterId], references: [id], onDelete: Cascade)
-
-  @@unique([permitterId, order])
-  @@map("permitter_schools")
+enum permitter_status {
+  PENDING
+  APPROVED
+  REJECTED
 }

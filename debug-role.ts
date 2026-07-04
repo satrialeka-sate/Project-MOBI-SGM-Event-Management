@@ -1,8 +1,10 @@
 import "dotenv/config";
-import { PrismaClient, UserRole, UserLevel, UserScope } from "@prisma/client";
+import { PrismaClient, UserRole, UserLevel, UserScope } from "./generated/prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
+const adapter = new PrismaPg(pool);
 
 async function main() {
   // 1. Print Prisma-generated enum values
@@ -22,7 +24,7 @@ async function main() {
   console.log("Using region:", regionId);
 
   // 3. Test creation with different PrismaClient methods
-  const prisma = new PrismaClient();
+  const prisma = new PrismaClient({ adapter });
 
   // Test 1: Direct PrismaClient create with UserRole.ADMIN
   console.log("\n=== Test 1: prisma.user.create with UserRole.ADMIN ===");
