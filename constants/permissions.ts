@@ -41,6 +41,9 @@ export const PERMISSIONS = {
     UPDATE: "contacts.update",
     DELETE: "contacts.delete",
   },
+  SCHEDULES: {
+    READ: "schedules.read",
+  },
 } as const;
 
 type ExtractPermissions<T> = {

@@ -28,6 +28,7 @@ const rolePermissions: Record<Role, readonly string[]> = {
     "permitters.create",
     "permitters.update",
     "regions.read",
+    "schedules.read",
   ],
   [ROLES.SPG]: [
     "events.read",
@@ -51,6 +52,7 @@ const rolePermissions: Record<Role, readonly string[]> = {
     "contacts.read",
     "reports.read",
     "regions.read",
+    "schedules.read",
   ],
 };
 
@@ -105,5 +107,8 @@ export const can = {
   },
   report: {
     read: (role: Role) => hasPermission(role, "reports.read"),
+  },
+  schedule: {
+    read: (role: Role) => hasPermission(role, "schedules.read"),
   },
 } as const;

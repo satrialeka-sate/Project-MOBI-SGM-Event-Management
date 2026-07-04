@@ -51,5 +51,6 @@ export function usePermissions() {
     canReadUser: can.user.read(role),
     canReadRegion: can.region.read(role),
     canReadReport: can.report.read(role),
+    canReadSchedule: can.schedule.read(role),
   };
 }

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, List, Calendar, Building2, Loader2, CalendarDays } from "lucide-react";
+import { Calendar, Building2, Loader2, CalendarDays, ClipboardList, CalendarRange } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { usePermissions } from "@/hooks/use-permissions";
 import { usePermitters } from "@/hooks/use-permitters";
@@ -21,6 +21,7 @@ export default function DashboardPage() {
     canReadPermitter,
     canReadEvent,
     canReadAttendance,
+    canReadSchedule,
   } = usePermissions();
 
   const { data: permitterData, isLoading } = usePermitters({
@@ -129,18 +130,7 @@ export default function DashboardPage() {
               onClick={() => router.push("/events")}
             >
               <CalendarDays className="mr-2 h-5 w-5" />
-              View Events
-            </Button>
-          )}
-          {canCreatePermitter && (
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-12 flex-1 border-sgm-red text-base text-sgm-red hover:bg-sgm-red-pale hover:text-sgm-red-dark"
-              onClick={() => router.push("/permitters/new")}
-            >
-              <Plus className="mr-2 h-5 w-5" />
-              Create Permitter
+              Event
             </Button>
           )}
           {canReadPermitter && (
@@ -150,8 +140,19 @@ export default function DashboardPage() {
               className="h-12 flex-1 border-sgm-red text-base text-sgm-red hover:bg-sgm-red-pale hover:text-sgm-red-dark"
               onClick={() => router.push("/permitters")}
             >
-              <List className="mr-2 h-5 w-5" />
-              View Permitters
+              <ClipboardList className="mr-2 h-5 w-5" />
+              Permitter
+            </Button>
+          )}
+          {canReadSchedule && (
+            <Button
+              size="lg"
+              variant="outline"
+              className="h-12 flex-1 border-sgm-red text-base text-sgm-red hover:bg-sgm-red-pale hover:text-sgm-red-dark"
+              onClick={() => router.push("/schedule")}
+            >
+              <CalendarRange className="mr-2 h-5 w-5" />
+              Schedule
             </Button>
           )}
         </div>
