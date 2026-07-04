@@ -5,7 +5,7 @@ import { PERMISSIONS } from "@/constants/permissions";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { handleApiError } from "@/lib/errors";
 import { buildRegionFilter } from "@/lib/scope";
-import type { Prisma, UserRole } from "@prisma/client";
+import type { Prisma, UserRole } from "../../../generated/prisma/client";
 
 export const GET = auth(async function GET(request) {
   try {

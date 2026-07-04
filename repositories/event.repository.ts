@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import type { Prisma, $Enums } from "@prisma/client";
+import type { Prisma, $Enums } from "../generated/prisma/client";
 import type { CreateEventInput, UpdateEventInput, EventQueryParams } from "@/types/event";
 
 const eventPermitterInclude = {
