@@ -123,16 +123,6 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row">
-          {canReadEvent && (
-            <Button
-              size="lg"
-              className="h-12 flex-1 bg-sgm-red text-base text-white hover:bg-sgm-red-dark"
-              onClick={() => router.push("/events")}
-            >
-              <CalendarDays className="mr-2 h-5 w-5" />
-              Event
-            </Button>
-          )}
           {canReadPermitter && (
             <Button
               size="lg"
@@ -153,6 +143,16 @@ export default function DashboardPage() {
             >
               <CalendarRange className="mr-2 h-5 w-5" />
               Schedule
+            </Button>
+          )}
+          {canReadEvent && (
+            <Button
+              size="lg"
+              className="h-12 flex-1 bg-sgm-red text-base text-white hover:bg-sgm-red-dark"
+              onClick={() => router.push("/events")}
+            >
+              <CalendarDays className="mr-2 h-5 w-5" />
+              Event
             </Button>
           )}
         </div>

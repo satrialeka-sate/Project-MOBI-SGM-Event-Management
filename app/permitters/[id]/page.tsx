@@ -1,23 +1,33 @@
 "use client";
 
-import { use, useEffect } from "react";
+import { use, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import FormSection from "@/components/FormSection";
 import ErrorState from "@/components/ErrorState";
 import { FormSkeleton } from "@/components/LoadingSkeleton";
 import { usePermissions } from "@/hooks/use-permissions";
-import { usePermitter } from "@/hooks/use-permitters";
+import { usePermitter, useDeletePermitter } from "@/hooks/use-permitters";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function ViewPermitterPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { data: session, status: authStatus } = useSession();
   const router = useRouter();
-  const { canUpdatePermitter } = usePermissions();
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const { canUpdatePermitter, canDeletePermitter } = usePermissions();
   const { data: permitter, isLoading, isError, refetch } = usePermitter(id);
+  const deleteMutation = useDeletePermitter();
 
   useEffect(() => {
     if (authStatus === "unauthenticated") router.push("/login");
@@ -35,6 +45,13 @@ export default function ViewPermitterPage({ params }: { params: Promise<{ id: st
   }
 
   if (!session?.user) return null;
+
+  async function handleDelete() {
+    if (!deleteId) return;
+    await deleteMutation.mutateAsync(deleteId);
+    setDeleteId(null);
+    router.push("/permitters");
+  }
 
   if (isError || !permitter) {
     return (
@@ -62,6 +79,11 @@ export default function ViewPermitterPage({ params }: { params: Promise<{ id: st
             {canUpdatePermitter && (
               <Button size="sm" variant="outline" onClick={() => router.push(`/permitters/${permitter.id}/edit`)}>
                 <Pencil className="mr-1.5 h-4 w-4" /> Edit
+              </Button>
+            )}
+            {canDeletePermitter && (
+              <Button size="sm" variant="outline" className="text-red-500 hover:text-red-700" onClick={() => setDeleteId(permitter.id)}>
+                <Trash2 className="mr-1.5 h-4 w-4" /> Delete
               </Button>
             )}
           </div>
@@ -144,6 +166,23 @@ export default function ViewPermitterPage({ params }: { params: Promise<{ id: st
           </FormSection>
         </div>
       </main>
+
+      <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Permitter</DialogTitle>
+            <DialogDescription>
+              Are you sure? This action cannot be undone. All associated data will be permanently deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeleteId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleteMutation.isPending}>
+              {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

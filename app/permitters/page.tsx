@@ -5,35 +5,25 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Eye, Pencil, Trash2, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import SearchBar from "@/components/SearchBar";
 import EmptyState from "@/components/EmptyState";
 import ErrorState from "@/components/ErrorState";
 import { TableSkeleton, CardSkeleton } from "@/components/LoadingSkeleton";
-import { usePermitters, useDeletePermitter } from "@/hooks/use-permitters";
+import { usePermitters } from "@/hooks/use-permitters";
 import { usePermissions } from "@/hooks/use-permissions";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+
 
 export default function PermittersPage() {
   const { data: session, status: authStatus } = useSession();
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
   const limit = 10;
 
   const {
     canCreatePermitter,
-    canUpdatePermitter,
-    canDeletePermitter,
   } = usePermissions();
 
   const { data, isLoading, isError, refetch } = usePermitters({
@@ -43,8 +33,6 @@ export default function PermittersPage() {
     sortBy: "eventDate",
     sortOrder: "desc",
   });
-
-  const deleteMutation = useDeletePermitter();
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -62,12 +50,6 @@ export default function PermittersPage() {
 
   if (!session?.user) return null;
 
-  async function handleDelete() {
-    if (!deleteId) return;
-    await deleteMutation.mutateAsync(deleteId);
-    setDeleteId(null);
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       <AppHeader />
@@ -75,7 +57,7 @@ export default function PermittersPage() {
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-xl font-bold text-gray-900 md:text-2xl">Permitters</h1>
           {canCreatePermitter && (
-            <Button onClick={() => router.push("/permitters/new")} className="h-11 w-full sm:w-auto">
+            <Button onClick={() => router.push("/permitters/new")} className="h-11 w-full bg-sgm-red text-white hover:bg-sgm-red-dark sm:w-auto">
               <Plus className="mr-2 h-4 w-4" />
               Create Permitter
             </Button>
@@ -110,12 +92,11 @@ export default function PermittersPage() {
                     <th className="px-6 py-3">Event Date</th>
                     <th className="px-6 py-3">Venue</th>
                     <th className="px-6 py-3">Region</th>
-                    <th className="px-6 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {data.items.map((p) => (
-                    <tr key={p.id} className="hover:bg-gray-50">
+                    <tr key={p.id} className="cursor-pointer hover:bg-gray-50" onClick={() => router.push(`/permitters/${p.id}`)}>
                       <td className="px-6 py-4 text-sm">
                         {new Date(p.eventDate).toLocaleDateString()}
                       </td>
@@ -123,23 +104,6 @@ export default function PermittersPage() {
                         {p.venueName}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">{p.regionName}</td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => router.push(`/permitters/${p.id}`)}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          {canUpdatePermitter && (
-                            <Button variant="ghost" size="icon" onClick={() => router.push(`/permitters/${p.id}/edit`)}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {canDeletePermitter && (
-                            <Button variant="ghost" size="icon" onClick={() => setDeleteId(p.id)}>
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
-                          )}
-                        </div>
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -149,7 +113,7 @@ export default function PermittersPage() {
             {/* Mobile Cards */}
             <div className="space-y-3 md:hidden">
               {data.items.map((p) => (
-                <div key={p.id} className="rounded-xl border bg-white p-4 shadow-sm">
+                <div key={p.id} className="cursor-pointer rounded-xl border bg-white p-4 shadow-sm hover:bg-gray-50" onClick={() => router.push(`/permitters/${p.id}`)}>
                   <div className="mb-2 flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-900">
                       {new Date(p.eventDate).toLocaleDateString()}
@@ -160,21 +124,6 @@ export default function PermittersPage() {
                     <p><span className="font-medium text-gray-700">Region:</span> {p.regionName}</p>
                   </div>
                   <div className="mt-2 text-xs text-gray-400">Cycle: {p.cycle}</div>
-                  <div className="mt-3 flex gap-2 border-t pt-3">
-                    <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => router.push(`/permitters/${p.id}`)}>
-                      <Eye className="mr-1 h-3.5 w-3.5" /> View
-                    </Button>
-                    {canUpdatePermitter && (
-                      <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => router.push(`/permitters/${p.id}/edit`)}>
-                        <Pencil className="mr-1 h-3.5 w-3.5" /> Edit
-                      </Button>
-                    )}
-                    {canDeletePermitter && (
-                      <Button variant="outline" size="sm" className="flex-1 text-xs text-red-500" onClick={() => setDeleteId(p.id)}>
-                        <Trash2 className="mr-1 h-3.5 w-3.5" /> Delete
-                      </Button>
-                    )}
-                  </div>
                 </div>
               ))}
             </div>
@@ -199,22 +148,7 @@ export default function PermittersPage() {
         )}
       </main>
 
-      <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Permitter</DialogTitle>
-            <DialogDescription>
-              Are you sure? This action cannot be undone. All associated data will be permanently deleted.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setDeleteId(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleteMutation.isPending}>
-              {deleteMutation.isPending ? "Deleting..." : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
     </div>
   );
 }
