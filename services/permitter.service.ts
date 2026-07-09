@@ -1,5 +1,6 @@
 import { permitterRepository } from "@/repositories/permitter.repository";
 import { eventRepository } from "@/repositories/event.repository";
+import { getCycleFromDate } from "@/lib/cycle";
 import type {
   CreatePermitterInput,
   UpdatePermitterInput,
@@ -128,8 +129,11 @@ export const permitterService = {
       throw new AppError("Permitter user not found", 404);
     }
 
+    const cycle = getCycleFromDate(data.eventDate) ?? "Outside Cycle";
+
     const permitter = await permitterRepository.createInTransaction({
       ...data,
+      cycle,
       regionId: resolvedRegionId,
     });
 
@@ -185,10 +189,22 @@ export const permitterService = {
       }
     }
 
-    const permitter = await permitterRepository.updateInTransaction(id, {
-      ...data,
-      regionId: resolvedRegionId,
-    });
+    const updatePayload: UpdatePermitterInput = { ...data, regionId: resolvedRegionId };
+    if (data.eventDate) {
+      // Only recalculate cycle if the eventDate actually changed
+      const existingDate = existing.eventDate;
+      const newDate = data.eventDate;
+      const isSameDate =
+        existingDate.getUTCFullYear() === newDate.getUTCFullYear() &&
+        existingDate.getUTCMonth() === newDate.getUTCMonth() &&
+        existingDate.getUTCDate() === newDate.getUTCDate();
+
+      if (!isSameDate) {
+        updatePayload.cycle = getCycleFromDate(data.eventDate) ?? "Outside Cycle";
+      }
+    }
+
+    const permitter = await permitterRepository.updateInTransaction(id, updatePayload);
 
     return toPermitterResponse(permitter);
   },

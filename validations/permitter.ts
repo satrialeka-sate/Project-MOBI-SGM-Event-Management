@@ -19,7 +19,6 @@ export const schoolSchema = z.object({
 export const createPermitterSchema = z.object({
   permitterId: z.string().min(1, "Permitter user is required"),
   regionId: z.string().min(1, "Region is required"),
-  cycle: z.string().min(1, "Cycle is required").trim(),
   venueName: z.string().min(1, "Venue name is required").trim(),
   venueAddress: z.string().min(1, "Venue address is required").trim(),
   venuePIC: z.string().min(1, "Venue PIC is required").trim(),
@@ -37,7 +36,6 @@ export const createPermitterSchema = z.object({
 export const updatePermitterSchema = z.object({
   permitterId: z.string().min(1, "Permitter user is required").optional(),
   regionId: z.string().min(1, "Region is required").optional(),
-  cycle: z.string().min(1, "Cycle is required").trim().optional(),
   venueName: z.string().min(1, "Venue name is required").trim().optional(),
   venueAddress: z.string().min(1, "Venue address is required").trim().optional(),
   venuePIC: z.string().min(1, "Venue PIC is required").trim().optional(),

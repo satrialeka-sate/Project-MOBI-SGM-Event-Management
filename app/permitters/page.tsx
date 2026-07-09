@@ -63,7 +63,7 @@ export default function PermittersPage() {
             </Button>
           )}
         </div>
-
+          
         <div className="mb-4">
           <SearchBar value={search} onChange={(v) => { setSearch(v); setPage(1); }} />
         </div>

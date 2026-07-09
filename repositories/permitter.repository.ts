@@ -90,7 +90,7 @@ export const permitterRepository = {
         data: {
           permitterId: data.permitterId,
           regionId: data.regionId,
-          cycle: data.cycle,
+          cycle: data.cycle!,
           venueName: data.venueName,
           venueAddress: data.venueAddress,
           venuePIC: data.venuePIC,

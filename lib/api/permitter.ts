@@ -42,7 +42,6 @@ export interface PaginatedData<T> {
 export interface CreatePermitterData {
   permitterId: string;
   regionId: string;
-  cycle: string;
   venueName: string;
   venueAddress: string;
   venuePIC: string;
@@ -60,7 +59,6 @@ export interface CreatePermitterData {
 export interface UpdatePermitterData {
   permitterId?: string;
   regionId?: string;
-  cycle?: string;
   venueName?: string;
   venueAddress?: string;
   venuePIC?: string;

@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AxiosError } from "axios";
-import { Loader2, Plus, Trash2, ArrowLeft, Save, MapPin } from "lucide-react";
+import { Loader2, Plus, Trash2, ArrowLeft, Save, MapPin, Info, AlertTriangle } from "lucide-react";
+import { getCycleFromDate } from "@/lib/cycle";
 import AppHeader from "@/components/AppHeader";
 import FormSection from "@/components/FormSection";
 import BottomActionBar from "@/components/BottomActionBar";
@@ -30,7 +31,6 @@ const schoolSchema = z.object({
 
 const formSchema = z.object({
   eventDate: z.string().min(1, "Date is required"),
-  cycle: z.string().min(1, "Cycle is required"),
   venueName: z.string().min(1, "Venue name is required"),
   venueAddress: z.string().min(1, "Address is required"),
   venuePIC: z.string().min(1, "PIC name is required"),
@@ -61,11 +61,11 @@ export default function EditPermitterPage({ params }: { params: Promise<{ id: st
     handleSubmit,
     control,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      cycle: "",
       venueName: "",
       venueAddress: "",
       venuePIC: "",
@@ -75,6 +75,12 @@ export default function EditPermitterPage({ params }: { params: Promise<{ id: st
     },
   });
 
+  const watchedEventDate = watch("eventDate");
+
+  const cycleInfo = watchedEventDate
+    ? getCycleFromDate(new Date(watchedEventDate + "T00:00:00.000Z"))
+    : null;
+
   const { fields, append, remove } = useFieldArray({ control, name: "schools" });
 
   // Load permitter data into the form once it's ready
@@ -82,7 +88,6 @@ export default function EditPermitterPage({ params }: { params: Promise<{ id: st
     if (permitter && !initializedRef.current) {
       initializedRef.current = true;
 
-      setValue("cycle", permitter.cycle);
       setValue("venueName", permitter.venueName);
       setValue("venueAddress", permitter.venueAddress);
       setValue("venuePIC", permitter.venuePIC);
@@ -132,7 +137,6 @@ export default function EditPermitterPage({ params }: { params: Promise<{ id: st
       await updateMutation.mutateAsync({
         id,
         data: {
-          cycle: data.cycle,
           venueName: data.venueName,
           venueAddress: data.venueAddress,
           venuePIC: data.venuePIC,
@@ -196,11 +200,30 @@ export default function EditPermitterPage({ params }: { params: Promise<{ id: st
               {errors.eventDate && <p className="text-sm text-red-500">{errors.eventDate.message}</p>}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="cycle">Cycle</Label>
-              <Input id="cycle" {...register("cycle")} className="h-11" />
-              {errors.cycle && <p className="text-sm text-red-500">{errors.cycle.message}</p>}
-            </div>
+            {/* Cycle preview - read-only, computed from Event Date */}
+            {watchedEventDate && (
+              <div className="rounded-lg border bg-gray-50 p-3">
+                {cycleInfo ? (
+                  <div className="flex items-start gap-2">
+                    <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-500" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        <span className="font-semibold">{cycleInfo}</span>
+                      </p>
+                      <p className="text-xs text-gray-500">Otomatis berdasarkan Event Date</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Outside Cycle</p>
+                      <p className="text-xs text-amber-600">Tanggal ini berada di luar periode Cycle.</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </FormSection>
 
           <FormSection title="Venue Details">

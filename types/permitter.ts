@@ -36,7 +36,7 @@ export interface CreateSchoolInput {
 export interface CreatePermitterInput {
   permitterId: string;
   regionId: string;
-  cycle: string;
+  cycle?: string;
   venueName: string;
   venueAddress: string;
   venuePIC: string;

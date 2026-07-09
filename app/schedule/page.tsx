@@ -139,10 +139,9 @@ export default function SchedulePage() {
             className="h-11 rounded-xl border bg-white px-3 text-sm outline-none focus:border-sgm-red focus:ring-2 focus:ring-sgm-red-light min-w-[130px]"
           >
             <option value="">All Cycles</option>
-            <option value="CYCLE 1">CYCLE 1</option>
-            <option value="CYCLE 2">CYCLE 2</option>
-            <option value="CYCLE 3">CYCLE 3</option>
-            <option value="CYCLE 4">CYCLE 4</option>
+            <option value="Cycle 1">Cycle 1</option>
+            <option value="Cycle 2">Cycle 2</option>
+            <option value="Cycle 3">Cycle 3</option>
           </select>
 
           {/* Region Filter */}
