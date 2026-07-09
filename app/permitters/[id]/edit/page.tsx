@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AxiosError } from "axios";
 import { Loader2, Plus, Trash2, ArrowLeft, Save, MapPin, Info, AlertTriangle } from "lucide-react";
 import { getCycleFromDate } from "@/lib/cycle";
+import { getBusinessDayErrorMessage } from "@/lib/business-day";
 import AppHeader from "@/components/AppHeader";
 import FormSection from "@/components/FormSection";
 import BottomActionBar from "@/components/BottomActionBar";
@@ -53,6 +54,7 @@ export default function EditPermitterPage({ params }: { params: Promise<{ id: st
   const { data: regions } = useRegions();
   const initializedRef = useRef(false);
   const [submitError, setSubmitError] = useState("");
+  const [dateError, setDateError] = useState("");
 
   const userRegion = regions?.find((r) => r.id === session?.user?.regionId);
 
@@ -76,6 +78,17 @@ export default function EditPermitterPage({ params }: { params: Promise<{ id: st
   });
 
   const watchedEventDate = watch("eventDate");
+
+  // Realtime business day validation
+  useEffect(() => {
+    if (watchedEventDate) {
+      const date = new Date(watchedEventDate + "T00:00:00.000Z");
+      const error = getBusinessDayErrorMessage(date);
+      setDateError(error || "");
+    } else {
+      setDateError("");
+    }
+  }, [watchedEventDate]);
 
   const cycleInfo = watchedEventDate
     ? getCycleFromDate(new Date(watchedEventDate + "T00:00:00.000Z"))
@@ -133,6 +146,7 @@ export default function EditPermitterPage({ params }: { params: Promise<{ id: st
 
   const onSubmit: Parameters<typeof handleSubmit>[0] = async (data) => {
     setSubmitError("");
+    if (dateError) return;
     try {
       await updateMutation.mutateAsync({
         id,
@@ -198,6 +212,12 @@ export default function EditPermitterPage({ params }: { params: Promise<{ id: st
               <Label htmlFor="eventDate">Event Date</Label>
               <Input id="eventDate" type="date" {...register("eventDate")} className="h-11" />
               {errors.eventDate && <p className="text-sm text-red-500">{errors.eventDate.message}</p>}
+              {dateError && !errors.eventDate && (
+                <div className="flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-500" />
+                  <p className="text-sm text-red-600">{dateError}</p>
+                </div>
+              )}
             </div>
 
             {/* Cycle preview - read-only, computed from Event Date */}
@@ -304,13 +324,13 @@ export default function EditPermitterPage({ params }: { params: Promise<{ id: st
 
           <div className="hidden gap-3 md:flex">
             <Button type="button" variant="outline" className="h-11 flex-1" onClick={() => router.back()}>Cancel</Button>
-            <Button type="submit" className="h-11 flex-1" disabled={isSubmitting}>
+            <Button type="submit" className="h-11 flex-1" disabled={isSubmitting || !!dateError}>
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               Update
             </Button>
           </div>
 
-          <BottomActionBar onCancel={() => router.back()} isSubmitting={isSubmitting} submitLabel="Update" />
+          <BottomActionBar onCancel={() => router.back()} isSubmitting={isSubmitting} disabled={!!dateError} submitLabel="Update" />
         </form>
       </main>
     </div>

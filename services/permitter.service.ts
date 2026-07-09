@@ -1,6 +1,7 @@
 import { permitterRepository } from "@/repositories/permitter.repository";
 import { eventRepository } from "@/repositories/event.repository";
 import { getCycleFromDate } from "@/lib/cycle";
+import { getBusinessDayErrorMessage } from "@/lib/business-day";
 import type {
   CreatePermitterInput,
   UpdatePermitterInput,
@@ -109,6 +110,11 @@ export const permitterService = {
   ): Promise<PermitterResponse> {
     const resolvedRegionId = enforceRegionScope(data.regionId, actor);
 
+    const businessDayError = getBusinessDayErrorMessage(data.eventDate);
+    if (businessDayError) {
+      throw new AppError(businessDayError, 400);
+    }
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (data.eventDate < today) {
@@ -191,6 +197,12 @@ export const permitterService = {
 
     const updatePayload: UpdatePermitterInput = { ...data, regionId: resolvedRegionId };
     if (data.eventDate) {
+      // Validate business day when eventDate is being changed
+      const businessDayError = getBusinessDayErrorMessage(data.eventDate);
+      if (businessDayError) {
+        throw new AppError(businessDayError, 400);
+      }
+
       // Only recalculate cycle if the eventDate actually changed
       const existingDate = existing.eventDate;
       const newDate = data.eventDate;

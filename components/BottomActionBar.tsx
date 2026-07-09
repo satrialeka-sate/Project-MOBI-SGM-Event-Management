@@ -8,6 +8,7 @@ interface BottomActionBarProps {
   onCancel: () => void;
   isSubmitting?: boolean;
   submitLabel?: string;
+  disabled?: boolean;
   children?: ReactNode;
 }
 
@@ -15,6 +16,7 @@ export default function BottomActionBar({
   onCancel,
   isSubmitting = false,
   submitLabel = "Save",
+  disabled = false,
 }: BottomActionBarProps) {
   return (
     <div className="fixed inset-x-0 bottom-0 border-t bg-white p-4 md:hidden">
@@ -30,7 +32,7 @@ export default function BottomActionBar({
         <Button
           type="submit"
           className="h-12 flex-1 text-base"
-          disabled={isSubmitting}
+          disabled={isSubmitting || disabled}
         >
           {isSubmitting ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
