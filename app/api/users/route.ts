@@ -1,12 +1,13 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { requirePermission } from "@/lib/rbac";
 import { PERMISSIONS } from "@/constants/permissions";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { handleApiError } from "@/lib/errors";
 import { buildRegionFilter } from "@/lib/scope";
+import { userService } from "@/services/user.service";
+import { userRepository } from "@/repositories/user.repository";
 import bcrypt from "bcrypt";
-import type { Prisma, UserRole } from "../../../generated/prisma/client";
+import type { UserRole } from "../../../generated/prisma/client";
 
 export const GET = auth(async function GET(request) {
   try {
@@ -20,9 +21,9 @@ export const GET = auth(async function GET(request) {
     const url = new URL(request.url);
     const roleParam = url.searchParams.get("role");
 
-    const where: Prisma.UserWhereInput = {};
+    const where: Record<string, unknown> = {};
     if (roleParam) {
-      where.role = roleParam as any;
+      where.role = roleParam;
     }
 
     // Apply scope-based region filtering
@@ -31,23 +32,7 @@ export const GET = auth(async function GET(request) {
       where.regionId = regionFilter.regionId;
     }
 
-    const users = await prisma.user.findMany({
-      where,
-      orderBy: { name: "asc" },
-      select: {
-        id: true,
-        name: true,
-        username: true,
-        email: true,
-        role: true,
-        level: true,
-        scope: true,
-        regionId: true,
-        isActive: true,
-        image: true,
-      },
-    });
-
+    const users = await userRepository.findAll(where as any);
     return successResponse(users, "Users retrieved successfully");
   } catch (error) {
     return handleApiError(error);
@@ -64,10 +49,9 @@ export const POST = auth(async function POST(request) {
     requirePermission(session.user.role, PERMISSIONS.USERS_MANAGEMENT.CREATE);
 
     const body = await request.json();
-
-    // Validate required fields
     const { name, username, email, password, role, level, scope, regionId, isActive } = body;
 
+    // Validate required fields
     if (!name || !username || !email || !password || !role || !level || !scope || !regionId) {
       return errorResponse("All required fields must be provided", [], 422);
     }
@@ -77,43 +61,29 @@ export const POST = auth(async function POST(request) {
     }
 
     // Check unique email
-    const existingEmail = await prisma.user.findUnique({ where: { email } });
+    const existingEmail = await userRepository.findByEmail(email);
     if (existingEmail) {
       return errorResponse("Email already exists", [], 409);
     }
 
     // Check unique username
-    const existingUsername = await prisma.user.findUnique({ where: { username } });
+    const existingUsername = await userRepository.findByUsername(username);
     if (existingUsername) {
       return errorResponse("Username already exists", [], 409);
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    const user = await prisma.user.create({
-      data: {
-        name,
-        username,
-        email,
-        password: hashedPassword,
-        role: role as any,
-        level: level as any,
-        scope: scope as any,
-        regionId,
-        isActive: isActive !== false,
-      },
-      select: {
-        id: true,
-        name: true,
-        username: true,
-        email: true,
-        role: true,
-        level: true,
-        scope: true,
-        regionId: true,
-        isActive: true,
-        image: true,
-      },
+    const user = await userRepository.create({
+      name,
+      username,
+      email,
+      password: hashedPassword,
+      role: role as any,
+      level: level as any,
+      scope: scope as any,
+      regionId,
+      isActive: isActive !== false,
     });
 
     return successResponse(user, "User created successfully", 201);

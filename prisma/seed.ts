@@ -1,4 +1,4 @@
-import { PrismaClient, UserLevel, UserRole, UserScope } from "../generated/prisma/client";
+import { PrismaClient, UserLevel, UserRole, UserScope, UserStatus } from "../generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import bcrypt from "bcrypt";
@@ -35,7 +35,7 @@ async function main() {
   // Each user has a unique username and a bcrypt-hashed default password.
 const users = [
   // =========================
-  // STARLIGHT
+  // SUPERVISOR PO
   // =========================
   {
     name: "Gerry",
@@ -44,43 +44,7 @@ const users = [
     role: UserRole.SUPERVISOR,
     level: UserLevel.PO,
     scope: UserScope.ALL,
-    regionName: "STARLIGHT",
-  },
-  {
-    name: "Ali",
-    username: "ali",
-    email: "alijoufri@gmail.com",
-    role: UserRole.ADMIN,
-    level: UserLevel.PO,
-    scope: UserScope.ALL,
-    regionName: "STARLIGHT",
-  },
-  {
-    name: "Erik",
-    username: "erik",
-    email: "pargaulan182@gmail.com",
-    role: UserRole.ADMIN,
-    level: UserLevel.PIC,
-    scope: UserScope.REGION,
-    regionName: "STARLIGHT",
-  },
-  {
-    name: "Rahmi",
-    username: "rahmi",
-    email: "rna.rahmi@gmail.com",
-    role: UserRole.ADMIN,
-    level: UserLevel.PIC,
-    scope: UserScope.REGION,
-    regionName: "STARLIGHT",
-  },
-  {
-    name: "Momentum",
-    username: "momentum",
-    email: "momentum.eo.event@gmail.com",
-    role: UserRole.ADMIN,
-    level: UserLevel.PIC,
-    scope: UserScope.REGION,
-    regionName: "STARLIGHT",
+    regionName: "JABAR",
   },
 
   // =========================
@@ -204,7 +168,7 @@ const users = [
   },
 
   // =========================
-  // CLIENT
+  // CLIENT (ADMIN PO)
   // =========================
   {
     name: "Dodi",
@@ -213,7 +177,7 @@ const users = [
     role: UserRole.ADMIN,
     level: UserLevel.PO,
     scope: UserScope.ALL,
-    regionName: "STARLIGHT",
+    regionName: "JABAR",
   },
   {
     name: "Defanie",
@@ -222,7 +186,7 @@ const users = [
     role: UserRole.ADMIN,
     level: UserLevel.PO,
     scope: UserScope.ALL,
-    regionName: "STARLIGHT",
+    regionName: "JATENG",
   },
   {
     name: "Adelia",
@@ -231,7 +195,7 @@ const users = [
     role: UserRole.ADMIN,
     level: UserLevel.PO,
     scope: UserScope.ALL,
-    regionName: "STARLIGHT",
+    regionName: "JATIM",
   },
   {
     name: "Febri",
@@ -240,7 +204,7 @@ const users = [
     role: UserRole.ADMIN,
     level: UserLevel.PO,
     scope: UserScope.ALL,
-    regionName: "STARLIGHT",
+    regionName: "JABAR",
   },
   {
     name: "Sarah",
@@ -249,7 +213,7 @@ const users = [
     role: UserRole.ADMIN,
     level: UserLevel.PO,
     scope: UserScope.ALL,
-    regionName: "STARLIGHT",
+    regionName: "JATENG",
   },
   {
     name: "Tri",
@@ -258,7 +222,7 @@ const users = [
     role: UserRole.ADMIN,
     level: UserLevel.PO,
     scope: UserScope.ALL,
-    regionName: "STARLIGHT",
+    regionName: "JATIM",
   },
 
   // =========================
@@ -271,7 +235,7 @@ const users = [
     role: UserRole.ADMIN,
     level: UserLevel.PO,
     scope: UserScope.ALL,
-    regionName: "STARLIGHT",
+    regionName: "JABAR",
   },
   {
     name: "Kusnadi",
@@ -280,7 +244,7 @@ const users = [
     role: UserRole.ADMIN,
     level: UserLevel.PO,
     scope: UserScope.ALL,
-    regionName: "STARLIGHT",
+    regionName: "JATENG",
   },
   {
     name: "Satria",
@@ -289,7 +253,7 @@ const users = [
     role: UserRole.ADMIN,
     level: UserLevel.PO,
     scope: UserScope.ALL,
-    regionName: "STARLIGHT",
+    regionName: "JATIM",
   },
 ];
 
@@ -305,7 +269,7 @@ const users = [
       role: UserRole.ADMIN,
       level: UserLevel.PO,
       scope: UserScope.ALL,
-      regionName: "STARLIGHT",
+      regionName: "JABAR",
     },
 
     // ── ADMIN PIC ────────────────────────────────────────────────────────
@@ -345,7 +309,7 @@ const users = [
       role: UserRole.SUPERVISOR,
       level: UserLevel.PO,
       scope: UserScope.ALL,
-      regionName: "STARLIGHT",
+      regionName: "JABAR",
     },
     {
       name: "Supervisor Jabar",
@@ -475,6 +439,7 @@ const users = [
         scope: user.scope,
         regionId: regionRecords[user.regionName].id,
         isActive: true,
+        status: UserStatus.ACTIVE,
       },
       create: {
         name: user.name,
@@ -485,6 +450,7 @@ const users = [
         level: user.level,
         scope: user.scope,
         regionId: regionRecords[user.regionName].id,
+        status: UserStatus.ACTIVE,
       },
     });
   }

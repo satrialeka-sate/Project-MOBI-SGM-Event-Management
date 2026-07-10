@@ -6,18 +6,20 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Plus,
   Pencil,
   Trash2,
   Loader2,
-  ChevronLeft,
-  ChevronRight,
   Power,
   PowerOff,
   Key,
   Eye,
   EyeOff,
+  CheckCircle,
+  XCircle,
+  Clock,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import SearchBar from "@/components/SearchBar";
@@ -25,6 +27,7 @@ import EmptyState from "@/components/EmptyState";
 import ErrorState from "@/components/ErrorState";
 import { TableSkeleton, CardSkeleton } from "@/components/LoadingSkeleton";
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from "@/hooks/use-users";
+import api from "@/lib/axios";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useRegions } from "@/hooks/use-regions";
 import {
@@ -36,13 +39,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import FormSection from "@/components/FormSection";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import type { UserItem } from "@/lib/api/user";
+import { UserStatus } from "@/constants/prisma-enums";
 
 const ROLE_OPTIONS = [
   { value: "ADMIN", label: "Admin" },
@@ -63,6 +61,13 @@ const SCOPE_OPTIONS = [
   { value: "ALL", label: "All Regions" },
   { value: "REGION", label: "Own Region" },
 ];
+
+const STATUS_TABS = [
+  { value: "", label: "All" },
+  { value: UserStatus.PENDING, label: "Pending" },
+  { value: UserStatus.ACTIVE, label: "Active" },
+  { value: UserStatus.REJECTED, label: "Rejected" },
+] as const;
 
 interface UserFormData {
   name: string;
@@ -90,10 +95,35 @@ const emptyForm: UserFormData = {
   isActive: true,
 };
 
+/** Display a user's status with appropriate icon and color */
+function StatusBadge({ status }: { status: string }) {
+  const colors: Record<string, string> = {
+    [UserStatus.PENDING]: "bg-amber-100 text-amber-700",
+    [UserStatus.ACTIVE]: "bg-green-100 text-green-700",
+    [UserStatus.REJECTED]: "bg-red-100 text-red-700",
+  };
+  const icons: Record<string, React.ReactNode> = {
+    [UserStatus.PENDING]: <Clock className="h-3.5 w-3.5" />,
+    [UserStatus.ACTIVE]: <CheckCircle className="h-3.5 w-3.5" />,
+    [UserStatus.REJECTED]: <XCircle className="h-3.5 w-3.5" />,
+  };
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+        colors[status] || "bg-gray-100 text-gray-600"
+      }`}
+    >
+      {icons[status]}
+      {status}
+    </span>
+  );
+}
+
 export default function UsersPage() {
   const { data: session, status: authStatus } = useSession();
   const router = useRouter();
-  const { canCreateUser, canUpdateUser, canDeleteUser, canReadUser } = usePermissions();
+  const { canCreateUser, canUpdateUser, canDeleteUser, canReadUser, canApproveUser } = usePermissions();
   const { data: users, isLoading, isError, refetch } = useUsers();
   const { data: regions } = useRegions();
   const createMutation = useCreateUser();
@@ -107,6 +137,13 @@ export default function UsersPage() {
   const [formData, setFormData] = useState<UserFormData>(emptyForm);
   const [formError, setFormError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectUserId, setRejectUserId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [rejectError, setRejectError] = useState("");
+  const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
   useEffect(() => {
     if (authStatus === "unauthenticated") router.push("/login");
@@ -125,11 +162,14 @@ export default function UsersPage() {
   const currentSession = session;
   const safeUsers = users ?? [];
 
-  const filteredUsers = safeUsers.filter((u) =>
-    !search || u.name.toLowerCase().includes(search.toLowerCase()) ||
-    u.email.toLowerCase().includes(search.toLowerCase()) ||
-    (u.username ?? "").toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredUsers = safeUsers.filter((u) => {
+    const matchesSearch = !search ||
+      u.name.toLowerCase().includes(search.toLowerCase()) ||
+      u.email.toLowerCase().includes(search.toLowerCase()) ||
+      (u.username ?? "").toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = !statusFilter || u.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   function openCreateForm() {
     setEditId(null);
@@ -141,7 +181,7 @@ export default function UsersPage() {
     setFormOpen(true);
   }
 
-  function openEditForm(user: NonNullable<typeof safeUsers>[number]) {
+  function openEditForm(user: UserItem) {
     setEditId(user.id);
     setFormData({
       name: user.name,
@@ -159,10 +199,21 @@ export default function UsersPage() {
     setFormOpen(true);
   }
 
+  function openDetailDialog(user: UserItem) {
+    setSelectedUser(user);
+    setDetailDialogOpen(true);
+  }
+
+  function openRejectDialog(userId: string) {
+    setRejectUserId(userId);
+    setRejectionReason("");
+    setRejectError("");
+    setRejectDialogOpen(true);
+  }
+
   async function handleSubmit() {
     setFormError("");
 
-    // Validation
     if (!formData.name || !formData.username || !formData.email || !formData.role || !formData.level || !formData.scope || !formData.regionId) {
       setFormError("All fields are required");
       return;
@@ -193,7 +244,7 @@ export default function UsersPage() {
         if (formData.password) {
           updateData.password = formData.password;
         }
-        await updateMutation.mutateAsync({ id: editId, data: updateData as any });
+        await updateMutation.mutateAsync({ id: editId, data: updateData });
       } else {
         await createMutation.mutateAsync({
           name: formData.name,
@@ -219,6 +270,32 @@ export default function UsersPage() {
     await deleteMutation.mutateAsync(deleteId);
     setDeleteId(null);
     refetch();
+  }
+
+  async function handleApprove(userId: string) {
+    try {
+      await api.patch(`/users/${userId}/approve`, { action: "approve" });
+      refetch();
+    } catch {
+      // Error handled by toast
+    }
+  }
+
+  async function handleConfirmReject() {
+    if (!rejectUserId) return;
+
+    try {
+      await api.patch(`/users/${rejectUserId}/approve`, {
+        action: "reject",
+        rejectionReason: rejectionReason || undefined,
+      });
+      setRejectDialogOpen(false);
+      setRejectUserId(null);
+      setRejectionReason("");
+      refetch();
+    } catch {
+      setRejectError("Gagal menolak pengguna. Silakan coba lagi.");
+    }
   }
 
   async function handleToggleActive(userId: string, currentActive: boolean) {
@@ -252,6 +329,23 @@ export default function UsersPage() {
               Create User
             </Button>
           )}
+        </div>
+
+        {/* Status Filter Tabs */}
+        <div className="mb-4 flex gap-2 overflow-x-auto">
+          {STATUS_TABS.map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => setStatusFilter(tab.value)}
+              className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                statusFilter === tab.value
+                  ? "bg-sgm-red text-white"
+                  : "bg-white text-gray-600 hover:bg-gray-100 border"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         <div className="mb-4">
@@ -289,13 +383,17 @@ export default function UsersPage() {
                     <th className="px-6 py-3">Email</th>
                     <th className="px-6 py-3">Role</th>
                     <th className="px-6 py-3">Level</th>
-                    <th className="px-6 py-3">Active</th>
+                    <th className="px-6 py-3">Status</th>
                     <th className="px-6 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {filteredUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50">
+                    <tr
+                      key={user.id}
+                      className="hover:bg-gray-50 cursor-pointer"
+                      onClick={() => openDetailDialog(user)}
+                    >
                       <td className="px-6 py-4 text-sm font-medium text-gray-900">
                         {user.name}
                       </td>
@@ -314,21 +412,30 @@ export default function UsersPage() {
                         {user.level}
                       </td>
                       <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex h-6 w-6 items-center justify-center rounded-full ${
-                            user.isActive ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400"
-                          }`}
-                          title={user.isActive ? "Active" : "Inactive"}
-                        >
-                          {user.isActive ? (
-                            <Power className="h-3.5 w-3.5" />
-                          ) : (
-                            <PowerOff className="h-3.5 w-3.5" />
-                          )}
-                        </span>
+                        <StatusBadge status={user.status} />
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-1">
+                        <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                          {canApproveUser && user.status === UserStatus.PENDING && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleApprove(user.id)}
+                                title="Approve"
+                              >
+                                <CheckCircle className="h-4 w-4 text-green-500" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => openRejectDialog(user.id)}
+                                title="Reject"
+                              >
+                                <XCircle className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </>
+                          )}
                           {canUpdateUser && (
                             <>
                               <Button
@@ -380,22 +487,30 @@ export default function UsersPage() {
             {/* Mobile Cards */}
             <div className="space-y-3 md:hidden">
               {filteredUsers.map((user) => (
-                <div key={user.id} className="rounded-xl border bg-white p-4 shadow-sm">
+                <div
+                  key={user.id}
+                  className="rounded-xl border bg-white p-4 shadow-sm cursor-pointer"
+                  onClick={() => openDetailDialog(user)}
+                >
                   <div className="mb-2 flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-900">{user.name}</span>
-                    <span
-                      className={`inline-flex h-6 w-6 items-center justify-center rounded-full ${
-                        user.isActive ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400"
-                      }`}
-                    >
-                      {user.isActive ? <Power className="h-3.5 w-3.5" /> : <PowerOff className="h-3.5 w-3.5" />}
-                    </span>
+                    <StatusBadge status={user.status} />
                   </div>
                   <div className="space-y-1 text-sm text-gray-500">
                     <p><span className="font-medium text-gray-700">User:</span> {user.username || user.email}</p>
                     <p><span className="font-medium text-gray-700">Role:</span> {user.role} · {user.level}</p>
                   </div>
-                  <div className="mt-3 flex gap-2 border-t pt-3">
+                  <div className="mt-3 flex gap-2 border-t pt-3" onClick={(e) => e.stopPropagation()}>
+                    {canApproveUser && user.status === UserStatus.PENDING && (
+                      <>
+                        <Button variant="outline" size="sm" className="flex-1 text-xs text-green-600" onClick={() => handleApprove(user.id)}>
+                          <CheckCircle className="mr-1 h-3.5 w-3.5" /> Approve
+                        </Button>
+                        <Button variant="outline" size="sm" className="flex-1 text-xs text-red-600" onClick={() => openRejectDialog(user.id)}>
+                          <XCircle className="mr-1 h-3.5 w-3.5" /> Reject
+                        </Button>
+                      </>
+                    )}
                     {canUpdateUser && (
                       <>
                         <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => openEditForm(user)}>
@@ -589,6 +704,52 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Reject Reason Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={(open) => !open && setRejectDialogOpen(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Tolak Pengguna</DialogTitle>
+            <DialogDescription>
+              Masukkan alasan penolakan (opsional). Pengguna akan mendapat notifikasi penolakan.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="rejectionReason">Alasan Penolakan (opsional)</Label>
+              <Textarea
+                id="rejectionReason"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="e.g. Data tidak lengkap"
+                className="min-h-[100px] resize-none"
+                maxLength={500}
+              />
+              <p className="text-xs text-gray-400">
+                {rejectionReason.length}/500 karakter
+              </p>
+            </div>
+
+            {rejectError && (
+              <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
+                {rejectError}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>Batal</Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmReject}
+            >
+              <XCircle className="mr-2 h-4 w-4" />
+              Tolak Pengguna
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete Dialog */}
       <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <DialogContent>
@@ -602,6 +763,107 @@ export default function UsersPage() {
             <Button variant="outline" onClick={() => setDeleteId(null)}>Cancel</Button>
             <Button variant="destructive" onClick={handleDelete} disabled={deleteMutation.isPending}>
               {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* User Detail Dialog */}
+      <Dialog open={detailDialogOpen} onOpenChange={(open) => !open && setDetailDialogOpen(false)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>User Details</DialogTitle>
+            <DialogDescription>
+              Detailed information about this user.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedUser && (
+            <div className="space-y-4 py-2">
+              {/* Basic Info */}
+              <div className="rounded-lg bg-gray-50 p-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-xs font-medium text-gray-500">Name</p>
+                    <p className="font-medium text-gray-900">{selectedUser.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-gray-500">Username</p>
+                    <p className="text-gray-900">{selectedUser.username || "-"}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-xs font-medium text-gray-500">Email</p>
+                    <p className="text-gray-900">{selectedUser.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-gray-500">Role</p>
+                    <p className="text-gray-900">{selectedUser.role}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-gray-500">Level</p>
+                    <p className="text-gray-900">{selectedUser.level}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-xs font-medium text-gray-500">Status</p>
+                    <StatusBadge status={selectedUser.status} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Approval Audit Info */}
+              {(selectedUser.approvedBy || selectedUser.rejectedBy) && (
+                <div className="rounded-lg bg-gray-50 p-4">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    Approval Audit
+                  </p>
+                  <div className="space-y-2 text-sm">
+                    {selectedUser.approvedBy && (
+                      <>
+                        <div>
+                          <p className="text-xs font-medium text-gray-500">Approved By</p>
+                          <p className="text-gray-900">{selectedUser.approvedBy}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-gray-500">Approved At</p>
+                          <p className="text-gray-900">
+                            {selectedUser.approvedAt
+                              ? new Date(selectedUser.approvedAt).toLocaleString("id-ID")
+                              : "-"}
+                          </p>
+                        </div>
+                      </>
+                    )}
+                    {selectedUser.rejectedBy && (
+                      <>
+                        <div>
+                          <p className="text-xs font-medium text-gray-500">Rejected By</p>
+                          <p className="text-gray-900">{selectedUser.rejectedBy}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-gray-500">Rejected At</p>
+                          <p className="text-gray-900">
+                            {selectedUser.rejectedAt
+                              ? new Date(selectedUser.rejectedAt).toLocaleString("id-ID")
+                              : "-"}
+                          </p>
+                        </div>
+                        {selectedUser.rejectionReason && (
+                          <div>
+                            <p className="text-xs font-medium text-gray-500">Rejection Reason</p>
+                            <p className="text-gray-900">{selectedUser.rejectionReason}</p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDetailDialogOpen(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

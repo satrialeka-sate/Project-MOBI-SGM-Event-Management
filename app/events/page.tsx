@@ -107,7 +107,7 @@ export default function EventsPage() {
               onChange={(e) => { setRegionId(e.target.value); setPage(1); }}
               className="h-11 rounded-xl border bg-white px-3 text-sm outline-none focus:border-sgm-red focus:ring-2 focus:ring-sgm-red-light"
             >
-              <option value="">All Regions</option>
+              <option value="">ALL REGION</option>
               {regions.map((r) => (
                 <option key={r.id} value={r.id}>{r.name}</option>
               ))}

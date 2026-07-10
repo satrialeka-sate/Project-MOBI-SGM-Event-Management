@@ -20,6 +20,8 @@ import BottomActionBar from "@/components/BottomActionBar";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useCreatePermitter } from "@/hooks/use-permitters";
 import { useRegions } from "@/hooks/use-regions";
+import { UserRole } from "@/constants/prisma-enums";
+import { USER_LEVELS } from "@/constants/user-level";
 
 const schoolSchema = z.object({
   name: z.string().min(1, "School name is required"),
@@ -52,7 +54,12 @@ export default function CreatePermitterPage() {
   const [submitError, setSubmitError] = useState("");
   const [dateError, setDateError] = useState("");
 
+  const isAdminPO =
+    session?.user?.role === UserRole.ADMIN &&
+    session?.user?.level === USER_LEVELS.PO;
+
   const userRegion = regions?.find((r) => r.id === session?.user?.regionId);
+  const [selectedRegionId, setSelectedRegionId] = useState("");
 
   const {
     register,
@@ -115,10 +122,20 @@ export default function CreatePermitterPage() {
   const onSubmit: Parameters<typeof handleSubmit>[0] = async (data) => {
     setSubmitError("");
     if (dateError) return;
+
+    const effectiveRegionId = isAdminPO
+      ? selectedRegionId
+      : (session?.user?.regionId || "");
+
+    if (isAdminPO && !effectiveRegionId) {
+      setSubmitError("Region is required");
+      return;
+    }
+
     try {
       await createMutation.mutateAsync({
         permitterId: session?.user?.id || "",
-        regionId: session?.user?.regionId || "",
+        regionId: effectiveRegionId,
         eventDate: new Date(data.eventDate).toISOString(),
         venueName: data.venueName,
         venueAddress: data.venueAddress,
@@ -164,14 +181,32 @@ export default function CreatePermitterPage() {
             <div className="space-y-3 pl-10">
               <div>
                 <p className="text-xs font-medium text-gray-500">Region</p>
-                <p className="text-sm font-semibold text-gray-900">
-                  {userRegion?.name || session?.user?.regionId || "-"}
-                </p>
+                {isAdminPO ? (
+                  <select
+                    value={selectedRegionId}
+                    onChange={(e) => setSelectedRegionId(e.target.value)}
+                    className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary-muted"
+                    required
+                  >
+                    <option value="">Select Region</option>
+                    {regions?.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="text-sm font-semibold text-gray-900">
+                    {userRegion?.name || session?.user?.regionId || "-"}
+                  </p>
+                )}
               </div>
             </div>
-            <p className="mt-2 pl-10 text-xs text-gray-400">
-              This region is automatically determined from your account.
-            </p>
+            {!isAdminPO && (
+              <p className="mt-2 pl-10 text-xs text-gray-400">
+                This region is automatically determined from your account.
+              </p>
+            )}
           </div>
 
           {/* Event Details */}

@@ -10,7 +10,7 @@ const MONTH_NAMES_ID = [
 ];
 
 function isWeekend(dayOfWeek: number): boolean {
-  return dayOfWeek === 0 || dayOfWeek === 6; // Sunday=0, Saturday=6
+  return dayOfWeek === 0; // Only Sunday is weekend. Saturday (6) is now operational.
 }
 
 export const scheduleService = {

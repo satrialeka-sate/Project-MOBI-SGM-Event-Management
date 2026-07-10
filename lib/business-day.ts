@@ -11,16 +11,16 @@
  */
 
 const BUSINESS_DAY_MESSAGE =
-  "Event hanya dapat dijadwalkan pada hari Senin sampai Jumat.";
+  "Event hanya dapat dijadwalkan pada hari Senin sampai Sabtu.";
 
 /**
- * Returns true if the date is a business day (Monday–Friday).
+ * Returns true if the date is a business day (Monday–Saturday).
  * Extend this function with holiday calendar checks as needed.
  */
 export function isBusinessDay(date: Date): boolean {
   const day = date.getDay();
-  // 0 = Sunday, 6 = Saturday
-  return day >= 1 && day <= 5;
+  // 0 = Sunday, 1-6 = Monday-Saturday
+  return day >= 1 && day <= 6;
 }
 
 /**

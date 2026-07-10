@@ -9,7 +9,7 @@ export const authConfig = {
       const isLoggedIn = !!auth?.user;
 
       // Public paths — always allow
-      const publicPaths = ["/login", "/api/auth"];
+      const publicPaths = ["/login", "/register", "/api/auth", "/api/regions"];
       if (publicPaths.some((path) => nextUrl.pathname.startsWith(path))) {
         return true;
       }

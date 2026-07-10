@@ -1,18 +1,39 @@
 import api from "@/lib/axios";
-import type { ApiResponse } from "./permitter";
 import type { UserRole } from "@/constants/prisma-enums";
+import type { UserResponse } from "@/types/user";
+
+/** Response type from the API */
+export interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+  errors?: string[];
+}
 
 export interface UserItem {
   id: string;
   name: string;
   username?: string | null;
   email: string;
+  phone?: string | null;
   role: UserRole;
   level: string;
   scope: string;
   regionId: string;
+  status: string;
   isActive: boolean;
   image?: string | null;
+  createdAt?: string;
+  /** ID of the admin who approved this user */
+  approvedBy?: string | null;
+  /** Timestamp when the user was approved */
+  approvedAt?: string | null;
+  /** ID of the admin who rejected this user */
+  rejectedBy?: string | null;
+  /** Timestamp when the user was rejected */
+  rejectedAt?: string | null;
+  /** Reason for rejection */
+  rejectionReason?: string | null;
 }
 
 export interface CreateUserData {

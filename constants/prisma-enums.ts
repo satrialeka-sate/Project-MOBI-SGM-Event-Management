@@ -18,6 +18,14 @@ export const UserRole = {
 
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 
+export const UserStatus = {
+  PENDING: "PENDING" as const,
+  ACTIVE: "ACTIVE" as const,
+  REJECTED: "REJECTED" as const,
+} as const;
+
+export type UserStatus = (typeof UserStatus)[keyof typeof UserStatus];
+
 export const PreviousMilk = {
   SGM: "SGM" as const,
   SUSU_BUBUK: "SUSU_BUBUK" as const,

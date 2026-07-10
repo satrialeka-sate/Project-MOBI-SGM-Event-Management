@@ -52,6 +52,8 @@ export function usePermissions() {
     canCreateUser: can.usersManagement.create(role),
     canUpdateUser: can.usersManagement.update(role),
     canDeleteUser: can.usersManagement.delete(role),
+    canApproveUser: can.approval.approve(role),
+    canRejectUser: can.approval.reject(role),
     canReadRegion: can.region.read(role),
     canReadReport: can.report.read(role),
     canReadSchedule: can.schedule.read(role),

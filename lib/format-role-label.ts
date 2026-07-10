@@ -28,5 +28,11 @@ export function formatRoleLabel(role?: string, level?: string): string {
     LEVEL_LABELS[level] ??
     level.charAt(0) + level.slice(1).toLowerCase().replace(/_/g, " ");
 
+  // Deduplicate when role and level produce the same label
+  // e.g. "Permitter Permitter" → "Permitter", "SPG SPG" → "SPG"
+  if (rolePart.toLowerCase() === levelPart.toLowerCase()) {
+    return rolePart;
+  }
+
   return `${rolePart} ${levelPart}`;
 }

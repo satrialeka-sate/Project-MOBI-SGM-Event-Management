@@ -1,1 +1,2 @@
-// Auth validations removed — using Google OAuth only
+// Re-export all validation schemas
+export * from "./auth";

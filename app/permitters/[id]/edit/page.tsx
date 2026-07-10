@@ -21,6 +21,8 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { usePermitter, useUpdatePermitter } from "@/hooks/use-permitters";
 import { useRegions } from "@/hooks/use-regions";
 import { FormSkeleton } from "@/components/LoadingSkeleton";
+import { UserRole } from "@/constants/prisma-enums";
+import { USER_LEVELS } from "@/constants/user-level";
 
 const schoolSchema = z.object({
   name: z.string().min(1, "School name is required"),
@@ -56,7 +58,19 @@ export default function EditPermitterPage({ params }: { params: Promise<{ id: st
   const [submitError, setSubmitError] = useState("");
   const [dateError, setDateError] = useState("");
 
+  const isAdminPO =
+    session?.user?.role === UserRole.ADMIN &&
+    session?.user?.level === USER_LEVELS.PO;
+
   const userRegion = regions?.find((r) => r.id === session?.user?.regionId);
+  const [selectedRegionId, setSelectedRegionId] = useState("");
+
+  // Set initial region from permitter data
+  useEffect(() => {
+    if (permitter && !selectedRegionId) {
+      setSelectedRegionId(permitter.regionId);
+    }
+  }, [permitter, selectedRegionId]);
 
   const {
     register,
@@ -147,10 +161,21 @@ export default function EditPermitterPage({ params }: { params: Promise<{ id: st
   const onSubmit: Parameters<typeof handleSubmit>[0] = async (data) => {
     setSubmitError("");
     if (dateError) return;
+
+    const effectiveRegionId = isAdminPO
+      ? selectedRegionId
+      : undefined;
+
+    if (isAdminPO && !effectiveRegionId) {
+      setSubmitError("Region is required");
+      return;
+    }
+
     try {
       await updateMutation.mutateAsync({
         id,
         data: {
+          regionId: effectiveRegionId,
           venueName: data.venueName,
           venueAddress: data.venueAddress,
           venuePIC: data.venuePIC,
@@ -197,14 +222,32 @@ export default function EditPermitterPage({ params }: { params: Promise<{ id: st
             <div className="space-y-3 pl-10">
               <div>
                 <p className="text-xs font-medium text-gray-500">Region</p>
-                <p className="text-sm font-semibold text-gray-900">
-                  {permitter?.regionName || userRegion?.name || session?.user?.regionId || "-"}
-                </p>
+                {isAdminPO ? (
+                  <select
+                    value={selectedRegionId}
+                    onChange={(e) => setSelectedRegionId(e.target.value)}
+                    className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary-muted"
+                    required
+                  >
+                    <option value="">Select Region</option>
+                    {regions?.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="text-sm font-semibold text-gray-900">
+                    {permitter?.regionName || userRegion?.name || session?.user?.regionId || "-"}
+                  </p>
+                )}
               </div>
             </div>
-            <p className="mt-2 pl-10 text-xs text-gray-400">
-              This region is automatically determined from your account.
-            </p>
+            {!isAdminPO && (
+              <p className="mt-2 pl-10 text-xs text-gray-400">
+                This region is automatically determined from your account.
+              </p>
+            )}
           </div>
 
           <FormSection title="Event Details">

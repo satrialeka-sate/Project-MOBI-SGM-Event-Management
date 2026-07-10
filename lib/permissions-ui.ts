@@ -109,6 +109,10 @@ export const can = {
     update: (role: Role) => hasPermission(role, "users_management.update"),
     delete: (role: Role) => hasPermission(role, "users_management.delete"),
   },
+  approval: {
+    approve: (role: Role) => hasPermission(role, "approval.approve"),
+    reject: (role: Role) => hasPermission(role, "approval.reject"),
+  },
   region: {
     read: (role: Role) => hasPermission(role, "regions.read"),
   },

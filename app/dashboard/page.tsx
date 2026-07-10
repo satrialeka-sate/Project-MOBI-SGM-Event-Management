@@ -4,10 +4,13 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, ClipboardList, CalendarRange, CalendarDays, ChevronRight } from "lucide-react";
+import { Loader2, ClipboardList, CalendarRange, CalendarDays, ChevronRight, MapPin } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useRegions } from "@/hooks/use-regions";
 import { formatRoleLabel } from "@/lib/format-role-label";
+import { UserRole } from "@/constants/prisma-enums";
+import { USER_LEVELS } from "@/constants/user-level";
 
 const NAV_ITEMS = [
   {
@@ -44,6 +47,7 @@ export default function DashboardPage() {
     canReadSchedule,
     canReadEvent,
   } = usePermissions();
+  const { data: regions } = useRegions();
 
   const permissions = { canReadPermitter, canReadSchedule, canReadEvent };
 
@@ -66,6 +70,12 @@ export default function DashboardPage() {
   const user = session.user;
   const roleLabel = formatRoleLabel(user.role, user.level);
 
+  const isAdminPO =
+    user.role === UserRole.ADMIN &&
+    user.level === USER_LEVELS.PO;
+
+  const userRegion = regions?.find((r) => r.id === user.regionId);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <AppHeader />
@@ -75,10 +85,16 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold text-gray-900">
             Hello, {user.name}
           </h1>
-          <div className="mt-2">
+          <div className="mt-2 flex flex-wrap items-center gap-2">
             <span className="inline-flex rounded-full bg-sgm-red px-3 py-1 text-xs font-medium text-white">
               {roleLabel}
             </span>
+            {!isAdminPO && userRegion && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
+                <MapPin className="h-3 w-3" />
+                {userRegion.name}
+              </span>
+            )}
           </div>
         </div>
 

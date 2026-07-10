@@ -3,6 +3,11 @@ generator client {
   output   = "../generated/prisma"
 }
 
+// ── Shadow database fix ─────────────────────────────────────────────────
+// If migration fails with "relation does not exist", run:
+//   npx prisma migrate resolve --applied "<migration_name>"
+// to mark problematic migrations as applied in the shadow DB.
+
 datasource db {
   provider = "postgresql"
 }
@@ -24,7 +29,17 @@ model User {
   email       String       @unique
   name        String
   password    String?
+  phone       String?
   regionId    String
+  status      UserStatus   @default(ACTIVE)
+
+  // Approval audit fields
+  approvedBy    String?
+  approvedAt    DateTime?
+  rejectedBy    String?
+  rejectedAt    DateTime?
+  rejectionReason String?
+
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   level       UserLevel    @default(PERMITTER)
@@ -205,6 +220,14 @@ enum PreviousMilk {
   OTHERS
 
   @@map("previous_milk")
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+
+  @@map("user_status")
 }
 
 enum permitter_status {

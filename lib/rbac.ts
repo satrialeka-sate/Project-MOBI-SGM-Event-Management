@@ -21,7 +21,7 @@ const WILDCARD = "*";
  * TEAM_LEADER  → Same as SPG (TEAM_LEADER uses role=SPG in database).
  */
 const rolePermissions: Record<Role, readonly string[]> = {
-  [ROLES.ADMIN]: [WILDCARD, "users_management.create", "users_management.read", "users_management.update", "users_management.delete"],
+  [ROLES.ADMIN]: [WILDCARD, "users_management.create", "users_management.read", "users_management.update", "users_management.delete", "approval.approve", "approval.reject"],
   [ROLES.PERMITTER]: [
     "permitters.read",
     "permitters.create",

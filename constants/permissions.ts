@@ -50,6 +50,10 @@ export const PERMISSIONS = {
     UPDATE: "users_management.update",
     DELETE: "users_management.delete",
   },
+  APPROVAL: {
+    APPROVE: "approval.approve",
+    REJECT: "approval.reject",
+  },
 } as const;
 
 type ExtractPermissions<T> = {

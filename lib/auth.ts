@@ -5,6 +5,7 @@ import bcrypt from "bcrypt";
 import { authConfig } from "./auth.config";
 import { prisma } from "./prisma";
 import type { UserRole } from "../generated/prisma/client";
+import { UserStatus } from "@/constants/prisma-enums";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -33,6 +34,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!user) return null;
         if (!user.password) return null;
         if (!user.isActive) return null;
+
+        // Check user approval status — use error codes, not human strings
+        if (user.status === UserStatus.PENDING) {
+          throw new Error("ACCOUNT_PENDING");
+        }
+        if (user.status === UserStatus.REJECTED) {
+          throw new Error("ACCOUNT_REJECTED");
+        }
 
         const isValid = await bcrypt.compare(password, user.password);
         if (!isValid) return null;

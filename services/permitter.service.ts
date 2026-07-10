@@ -12,6 +12,7 @@ import type {
 import type { ActorContext } from "@/types/auth";
 import { AppError } from "@/lib/errors";
 import { canAccessRegion, applyRegionFilter, isRegionScope } from "@/lib/scope";
+import { isLegacyRegion } from "@/constants/regions";
 
 function toPermitterResponse(permitter: {
   id: string;
@@ -127,6 +128,9 @@ export const permitterService = {
     if (!region) {
       throw new AppError("Region not found", 404);
     }
+    if (isLegacyRegion(region.name)) {
+      throw new AppError(`${region.name} is not a valid operational region`, 400);
+    }
 
     const permitterUser = await permitterRepository.verifyUserExists(
       data.permitterId
@@ -183,6 +187,9 @@ export const permitterService = {
       const region = await permitterRepository.verifyRegionExists(resolvedRegionId);
       if (!region) {
         throw new AppError("Region not found", 404);
+      }
+      if (isLegacyRegion(region.name)) {
+        throw new AppError(`${region.name} is not a valid operational region`, 400);
       }
     }
 

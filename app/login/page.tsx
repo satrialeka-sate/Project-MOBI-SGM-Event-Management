@@ -23,6 +23,8 @@ function LoginForm() {
     AccessDenied: "Akses ditolak. Hubungi administrator.",
     OAuthSignIn: "Terjadi kesalahan saat masuk dengan Google. Coba lagi.",
     CredentialsSignIn: "Email/Username atau password salah.",
+    PendingApproval: "Akun Anda masih menunggu persetujuan ADMIN PO.",
+    Rejected: "Pendaftaran Anda telah ditolak. Hubungi administrator.",
     default: "Terjadi kesalahan. Silakan coba lagi.",
   };
 
@@ -59,7 +61,12 @@ function LoginForm() {
     setIsLoading(false);
 
     if (result?.error) {
-      setClientError("Email/Username atau password salah.");
+      // Map error codes to user-friendly messages
+      const errorMap: Record<string, string> = {
+        ACCOUNT_PENDING: "Akun Anda masih menunggu persetujuan ADMIN PO.",
+        ACCOUNT_REJECTED: "Pendaftaran Anda telah ditolak. Hubungi administrator.",
+      };
+      setClientError(errorMap[result.error] || "Email/Username atau password salah.");
       return;
     }
 
@@ -240,7 +247,20 @@ function LoginForm() {
         </button>
 
         {/* Footer */}
-        <p className="mt-6 text-center text-[11px] text-gray-400">
+        {/* Register link */}
+        <div className="mt-6 text-center">
+          <p className="text-xs text-gray-500">
+            Belum punya akun?{" "}
+            <a
+              href="/register"
+              className="font-medium text-red-500 hover:text-red-600 transition-colors"
+            >
+              Daftar di sini
+            </a>
+          </p>
+        </div>
+
+        <p className="mt-4 text-center text-[11px] text-gray-400">
           SGM Event Management
         </p>
       </div>
