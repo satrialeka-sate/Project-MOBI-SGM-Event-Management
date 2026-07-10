@@ -5,7 +5,19 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, Eye, EyeOff, ArrowLeft, CheckCircle } from "lucide-react";
+import {
+  Loader2,
+  Eye,
+  EyeOff,
+  CheckCircle,
+  User,
+  Mail,
+  Phone,
+  Lock,
+  ShieldCheck,
+  MapPin,
+  Sparkles,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,11 +54,23 @@ const ROLE_OPTIONS = [
 export default function RegisterPage() {
   const router = useRouter();
   const { data: regions = [], isLoading, isError } = useRegions();
-  console.log("[RegisterPage] regions from hook:", regions, "isLoading:", isLoading, "isError:", isError);
+  console.log(
+    "[RegisterPage] regions from hook:",
+    regions,
+    "isLoading:",
+    isLoading,
+    "isError:",
+    isError
+  );
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const {
     register,
@@ -84,20 +108,33 @@ export default function RegisterPage() {
     }
   };
 
+  // ── Success State ──
   if (isSuccess) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-        <div className="w-full max-w-md rounded-xl border bg-white p-8 text-center shadow-lg">
-          <CheckCircle className="mx-auto h-16 w-16 text-green-500" />
-          <h2 className="mt-4 text-2xl font-bold text-gray-900">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-sgm-red to-sgm-red-dark px-6">
+        <div
+          className={`w-full max-w-sm text-center transition-all duration-700 ${
+            mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+          }`}
+        >
+          {/* Success icon */}
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm shadow-lg">
+            <CheckCircle className="h-10 w-10 text-white" />
+          </div>
+
+          <h2 className="mt-6 text-2xl font-bold text-white">
             Pendaftaran Berhasil!
           </h2>
-          <p className="mt-2 text-gray-600">
+          <p className="mt-3 text-sm leading-relaxed text-white/80">
             Akun Anda sedang menunggu persetujuan ADMIN PO.
+            <br />
             Anda akan mendapat notifikasi setelah disetujui.
           </p>
+
+          <div className="mx-auto mt-4 h-1 w-16 rounded-full bg-white/30" />
+
           <Button
-            className="mt-6 h-11 w-full text-white"
+            className="mt-8 h-13 w-full rounded-xl bg-white text-sgm-red font-semibold shadow-lg shadow-black/10 transition-all duration-300 hover:bg-white/90 hover:shadow-xl active:scale-[0.98]"
             onClick={() => router.push("/login")}
           >
             Kembali ke Login
@@ -107,97 +144,153 @@ export default function RegisterPage() {
     );
   }
 
+  // ── Register Form (Mobile-First) ──
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8">
-      <div className="w-full max-w-md">
-        {/* Back button */}
-        <button
-          onClick={() => router.push("/login")}
-          className="mb-4 flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700"
-        >
-          <ArrowLeft className="h-4 w-4" /> Kembali ke Login
-        </button>
+    <div className="relative min-h-screen bg-[#f5f7fa]">
+      {/* ── Subtle decorative background ── */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 h-[400px] w-[400px] rounded-full bg-gradient-to-br from-sgm-red/5 to-sgm-red/10 blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 h-[400px] w-[400px] rounded-full bg-gradient-to-tr from-sgm-red/5 to-sgm-red-secondary/5 blur-3xl" />
+      </div>
 
-        {/* Card */}
-        <div className="rounded-xl border bg-white p-6 shadow-lg md:p-8">
-          {/* Header */}
-          <div className="mb-6 text-center">
-            <h1 className="text-xl font-bold text-gray-900">
-              Daftar Akun Baru
-            </h1>
-            <p className="mt-1 text-sm text-gray-500">
-              Isi data Anda untuk mendaftar
-            </p>
+      {/* ── Scrollable content ── */}
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[440px] flex-col px-5 py-8">
+        {/* ── Logo & Branding ── */}
+        <div
+          className={`mb-8 text-center transition-all duration-700 ${
+            mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+          }`}
+        >
+          {/* SGM Logo Badge */}
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-sgm-red to-sgm-red-dark shadow-lg shadow-sgm-red/20">
+            <Sparkles className="h-7 w-7 text-white" />
           </div>
 
-          {/* Error */}
+          {/* Title */}
+          <h1 className="text-2xl font-bold text-gray-900">Buat Akun Baru</h1>
+          <p className="mt-2 text-sm text-gray-500 leading-relaxed max-w-xs mx-auto">
+            Daftarkan akun Anda untuk mulai menggunakan Sistem Event Management
+            SGM.
+          </p>
+        </div>
+
+        {/* ── Form Card ── */}
+        <div
+          className={`rounded-2xl bg-white px-6 py-7 shadow-[0_2px_16px_-4px_rgba(0,0,0,0.08),0_0_0_1px_rgba(0,0,0,0.02)] transition-all duration-700 delay-100 ${
+            mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+          }`}
+        >
+          {/* Error Alert */}
           {submitError && (
-            <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
-              {submitError}
+            <div className="mb-5 animate-[fadeIn_0.3s_ease-out] flex items-start gap-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3.5 text-sm text-red-600">
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-200 text-[11px] font-bold text-red-600">
+                !
+              </span>
+              <span>{submitError}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {/* Name */}
             <div className="space-y-1.5">
-              <Label htmlFor="name">Nama Lengkap</Label>
-              <Input
-                id="name"
-                {...register("name")}
-                placeholder="Masukkan nama lengkap"
-                className="h-11"
-              />
+              <Label
+                htmlFor="name"
+                className="text-xs font-semibold uppercase tracking-wider text-gray-600"
+              >
+                Nama Lengkap
+              </Label>
+              <div className="relative">
+                <User className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Input
+                  id="name"
+                  {...register("name")}
+                  placeholder="Masukkan nama lengkap"
+                  className="h-14 w-full rounded-xl border border-gray-200 bg-gray-50/60 pl-11 pr-4 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-all duration-200 focus:border-sgm-red/60 focus:bg-white focus:ring-2 focus:ring-sgm-red/10"
+                />
+              </div>
               {errors.name && (
-                <p className="text-xs text-red-500">{errors.name.message}</p>
+                <p className="animate-[fadeIn_0.2s_ease-out] text-xs font-medium text-red-500 pl-1">
+                  {errors.name.message}
+                </p>
               )}
             </div>
 
             {/* Email */}
             <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                {...register("email")}
-                placeholder="email@example.com"
-                className="h-11"
-              />
+              <Label
+                htmlFor="email"
+                className="text-xs font-semibold uppercase tracking-wider text-gray-600"
+              >
+                Email
+              </Label>
+              <div className="relative">
+                <Mail className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Input
+                  id="email"
+                  type="email"
+                  {...register("email")}
+                  placeholder="email@example.com"
+                  className="h-14 w-full rounded-xl border border-gray-200 bg-gray-50/60 pl-11 pr-4 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-all duration-200 focus:border-sgm-red/60 focus:bg-white focus:ring-2 focus:ring-sgm-red/10"
+                />
+              </div>
               {errors.email && (
-                <p className="text-xs text-red-500">{errors.email.message}</p>
+                <p className="animate-[fadeIn_0.2s_ease-out] text-xs font-medium text-red-500 pl-1">
+                  {errors.email.message}
+                </p>
               )}
             </div>
 
             {/* Phone */}
             <div className="space-y-1.5">
-              <Label htmlFor="phone">Nomor HP (opsional)</Label>
-              <Input
-                id="phone"
-                type="tel"
-                {...register("phone")}
-                placeholder="08123456789"
-                className="h-11"
-              />
+              <Label
+                htmlFor="phone"
+                className="text-xs font-semibold uppercase tracking-wider text-gray-600"
+              >
+                Nomor HP{" "}
+                <span className="font-normal normal-case text-gray-400">
+                  (opsional)
+                </span>
+              </Label>
+              <div className="relative">
+                <Phone className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Input
+                  id="phone"
+                  type="tel"
+                  {...register("phone")}
+                  placeholder="08123456789"
+                  className="h-14 w-full rounded-xl border border-gray-200 bg-gray-50/60 pl-11 pr-4 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-all duration-200 focus:border-sgm-red/60 focus:bg-white focus:ring-2 focus:ring-sgm-red/10"
+                />
+              </div>
               {errors.phone && (
-                <p className="text-xs text-red-500">{errors.phone.message}</p>
+                <p className="animate-[fadeIn_0.2s_ease-out] text-xs font-medium text-red-500 pl-1">
+                  {errors.phone.message}
+                </p>
               )}
             </div>
 
             {/* Password */}
             <div className="space-y-1.5">
-              <Label htmlFor="password">Password</Label>
+              <Label
+                htmlFor="password"
+                className="text-xs font-semibold uppercase tracking-wider text-gray-600"
+              >
+                Password
+              </Label>
               <div className="relative">
+                <Lock className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   {...register("password")}
                   placeholder="Minimal 8 karakter"
-                  className="h-11 pr-10"
+                  className="h-14 w-full rounded-xl border border-gray-200 bg-gray-50/60 pl-11 pr-12 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-all duration-200 focus:border-sgm-red/60 focus:bg-white focus:ring-2 focus:ring-sgm-red/10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-gray-600"
                   tabIndex={-1}
+                  aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -207,7 +300,7 @@ export default function RegisterPage() {
                 </button>
               </div>
               {errors.password && (
-                <p className="text-xs text-red-500">
+                <p className="animate-[fadeIn_0.2s_ease-out] text-xs font-medium text-red-500 pl-1">
                   {errors.password.message}
                 </p>
               )}
@@ -215,20 +308,31 @@ export default function RegisterPage() {
 
             {/* Confirm Password */}
             <div className="space-y-1.5">
-              <Label htmlFor="confirmPassword">Konfirmasi Password</Label>
+              <Label
+                htmlFor="confirmPassword"
+                className="text-xs font-semibold uppercase tracking-wider text-gray-600"
+              >
+                Konfirmasi Password
+              </Label>
               <div className="relative">
+                <Lock className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <Input
                   id="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
                   {...register("confirmPassword")}
                   placeholder="Ulangi password"
-                  className="h-11 pr-10"
+                  className="h-14 w-full rounded-xl border border-gray-200 bg-gray-50/60 pl-11 pr-12 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-all duration-200 focus:border-sgm-red/60 focus:bg-white focus:ring-2 focus:ring-sgm-red/10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-gray-600"
                   tabIndex={-1}
+                  aria-label={
+                    showConfirmPassword
+                      ? "Sembunyikan password"
+                      : "Tampilkan password"
+                  }
                 >
                   {showConfirmPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -238,7 +342,7 @@ export default function RegisterPage() {
                 </button>
               </div>
               {errors.confirmPassword && (
-                <p className="text-xs text-red-500">
+                <p className="animate-[fadeIn_0.2s_ease-out] text-xs font-medium text-red-500 pl-1">
                   {errors.confirmPassword.message}
                 </p>
               )}
@@ -246,62 +350,126 @@ export default function RegisterPage() {
 
             {/* Role */}
             <div className="space-y-1.5">
-              <Label htmlFor="role">Role yang Diinginkan</Label>
-              <select
-                id="role"
-                {...register("role")}
-                className="h-11 w-full rounded-xl border bg-white px-3 text-sm outline-none focus:border-sgm-red focus:ring-2 focus:ring-sgm-red-light"
+              <Label
+                htmlFor="role"
+                className="text-xs font-semibold uppercase tracking-wider text-gray-600"
               >
-                {ROLE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+                Role yang Diinginkan
+              </Label>
+              <div className="relative">
+                <ShieldCheck className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <select
+                  id="role"
+                  {...register("role")}
+                  className="h-14 w-full appearance-none rounded-xl border border-gray-200 bg-gray-50/60 pl-11 pr-11 text-sm text-gray-900 outline-none transition-all duration-200 focus:border-sgm-red/60 focus:bg-white focus:ring-2 focus:ring-sgm-red/10"
+                >
+                  {ROLE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <svg
+                  className="pointer-events-none absolute right-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </div>
               {errors.role && (
-                <p className="text-xs text-red-500">{errors.role.message}</p>
+                <p className="animate-[fadeIn_0.2s_ease-out] text-xs font-medium text-red-500 pl-1">
+                  {errors.role.message}
+                </p>
               )}
             </div>
 
             {/* Region */}
             <div className="space-y-1.5">
-              <Label htmlFor="regionId">Region</Label>
-              <select
-                id="regionId"
-                {...register("regionId")}
-                className="h-11 w-full rounded-xl border bg-white px-3 text-sm outline-none focus:border-sgm-red focus:ring-2 focus:ring-sgm-red-light"
+              <Label
+                htmlFor="regionId"
+                className="text-xs font-semibold uppercase tracking-wider text-gray-600"
               >
-                <option value="">Pilih Region</option>
-                {regions?.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
-              </select>
+                Region
+              </Label>
+              <div className="relative">
+                <MapPin className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <select
+                  id="regionId"
+                  {...register("regionId")}
+                  className="h-14 w-full appearance-none rounded-xl border border-gray-200 bg-gray-50/60 pl-11 pr-11 text-sm text-gray-900 outline-none transition-all duration-200 focus:border-sgm-red/60 focus:bg-white focus:ring-2 focus:ring-sgm-red/10"
+                >
+                  <option value="">Pilih Region</option>
+                  {regions?.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                    </option>
+                  ))}
+                </select>
+                <svg
+                  className="pointer-events-none absolute right-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </div>
               {errors.regionId && (
-                <p className="text-xs text-red-500">
+                <p className="animate-[fadeIn_0.2s_ease-out] text-xs font-medium text-red-500 pl-1">
                   {errors.regionId.message}
                 </p>
               )}
             </div>
 
-            {/* Submit */}
-            <Button
-              type="submit"
-              className="mt-2 h-11 w-full"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Mendaftarkan...
-                </>
-              ) : (
-                "Daftar"
-              )}
-            </Button>
+            {/* Submit Button */}
+            <div className="pt-1">
+              <Button
+                type="submit"
+                className="h-14 w-full rounded-xl bg-sgm-red text-sm font-semibold text-white shadow-lg shadow-sgm-red/25 transition-all duration-300 hover:bg-sgm-red-secondary active:scale-[0.98] active:shadow-md disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Mendaftarkan...
+                  </>
+                ) : (
+                  "Daftar"
+                )}
+              </Button>
+            </div>
           </form>
+
+          {/* Login Link */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-500">
+              Sudah punya akun?{" "}
+              <a
+                href="/login"
+                className="font-semibold text-sgm-red transition-colors hover:text-sgm-red-secondary"
+              >
+                Masuk
+              </a>
+            </p>
+          </div>
         </div>
+
+        {/* Footer */}
+        <p className="mt-6 text-center text-xs text-gray-400">
+          SGM Event Management &copy; 2026
+        </p>
       </div>
     </div>
   );

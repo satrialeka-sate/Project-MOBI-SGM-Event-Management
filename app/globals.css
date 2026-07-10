@@ -6,6 +6,7 @@
   --color-primary: #e30613;
   --color-primary-light: #ff4d4f;
   --color-primary-dark: #b71c1c;
+  --color-primary-foreground: #ffffff;
   --color-sgm-red: #e30613;
   --color-sgm-red-secondary: #ff4d4f;
   --color-sgm-red-light: #ffecee;
@@ -33,4 +34,21 @@ button, a, input, select, textarea {
 /* Prevent horizontal scroll on mobile */
 html {
   overflow-x: hidden;
+}
+
+/* ── Animation Keyframes ── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes blob {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
 }
