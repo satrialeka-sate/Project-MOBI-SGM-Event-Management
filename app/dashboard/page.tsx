@@ -4,7 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, ClipboardList, CalendarRange, CalendarDays, ChevronRight, MapPin } from "lucide-react";
+import { Loader2, ClipboardList, CalendarRange, ChevronRight, MapPin } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useRegions } from "@/hooks/use-regions";
@@ -29,14 +29,6 @@ const NAV_ITEMS = [
     href: "/schedule",
     permission: "canReadSchedule" as const,
   },
-  {
-    key: "event",
-    title: "Event",
-    description: "Kelola data event",
-    icon: CalendarDays,
-    href: "/events",
-    permission: "canReadEvent" as const,
-  },
 ] as const;
 
 export default function DashboardPage() {
@@ -45,11 +37,10 @@ export default function DashboardPage() {
   const {
     canReadPermitter,
     canReadSchedule,
-    canReadEvent,
   } = usePermissions();
   const { data: regions } = useRegions();
 
-  const permissions = { canReadPermitter, canReadSchedule, canReadEvent };
+  const permissions = { canReadPermitter, canReadSchedule };
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -96,6 +87,16 @@ export default function DashboardPage() {
               </span>
             )}
           </div>
+        </div>
+
+        {/* Main Menu Title */}
+        <div className="mb-4 text-center">
+          <h2 className="text-xl font-bold text-gray-900">
+            Main Menu
+          </h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Pilih menu yang tersedia
+          </p>
         </div>
 
         {/* Navigation Cards */}

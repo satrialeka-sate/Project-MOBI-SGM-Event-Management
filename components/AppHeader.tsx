@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { LogOut, Menu, X, Home, ClipboardList, Calendar, CalendarRange, Users } from "lucide-react";
+import { LogOut, Menu, X, Home, ClipboardList, CalendarRange, Users } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -12,22 +12,16 @@ export default function AppHeader() {
   const { data: session } = useSession();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
-  const { canReadPermitter, canReadEvent, canReadSchedule, canCreateUser } = usePermissions();
+  const { canReadPermitter, canReadSchedule, canCreateUser } = usePermissions();
 
   if (!session?.user) return null;
 
   const navLinks = [
     {
-      label: "Dashboard",
+      label: "Main Menu",
       icon: Home,
       href: "/dashboard",
       show: true,
-    },
-    {
-      label: "Events",
-      icon: Calendar,
-      href: "/events",
-      show: canReadEvent,
     },
     {
       label: "Permitters",
@@ -58,7 +52,7 @@ export default function AppHeader() {
         <button
           onClick={() => router.push("/dashboard")}
           className="flex items-center"
-          aria-label="Go to dashboard"
+          aria-label="Go to main menu"
         >
           <img
             src="/SGM_logo.svg"
