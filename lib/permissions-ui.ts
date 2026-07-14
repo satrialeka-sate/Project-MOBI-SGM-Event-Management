@@ -17,9 +17,10 @@ const WILDCARD = "*";
  *
  * ADMIN        → CRUD semua module (wildcard)
  * SUPERVISOR   → Read Only semua module. No Create/Update/Delete.
- * PERMITTER    → Create/Read/Update Permitter only. No Delete. No Attendance/Selling/Contact.
- * SPG          → Read Event. Create/Read/Update Attendance, Selling, Contact. No Delete.
+ * PERMITTER    → Create/Read/Update Permitter. Read Schedule. Read-only Event. No Attendance/Selling/Contact.
+ * SPG          → Read Permitter/Schedule/Event. Create/Read/Update Attendance, Selling, Contact. No Delete.
  * TEAM_LEADER  → Same as SPG (TEAM_LEADER uses role=SPG in database).
+ * CLIENT       → Read-only Permitter, Schedule, Event. No Create/Update/Delete/Approve/Reject.
  */
 const rolePermissions: Record<Role, readonly string[]> = {
   [ROLES.ADMIN]: [WILDCARD],
@@ -27,10 +28,12 @@ const rolePermissions: Record<Role, readonly string[]> = {
     "permitters.read",
     "permitters.create",
     "permitters.update",
+    "events.read",
     "regions.read",
     "schedules.read",
   ],
   [ROLES.SPG]: [
+    "permitters.read",
     "events.read",
     "attendance.read",
     "attendance.create",
@@ -42,6 +45,7 @@ const rolePermissions: Record<Role, readonly string[]> = {
     "contacts.create",
     "contacts.update",
     "regions.read",
+    "schedules.read",
   ],
   [ROLES.SUPERVISOR]: [
     "users.read",
@@ -53,6 +57,12 @@ const rolePermissions: Record<Role, readonly string[]> = {
     "reports.read",
     "regions.read",
     "schedules.read",
+  ],
+  [ROLES.CLIENT]: [
+    "permitters.read",
+    "events.read",
+    "schedules.read",
+    "regions.read",
   ],
 };
 

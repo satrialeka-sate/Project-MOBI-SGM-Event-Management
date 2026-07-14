@@ -5,6 +5,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   [UserRole.SUPERVISOR]: "Supervisor",
   [UserRole.PERMITTER]: "Permitter",
   [UserRole.SPG]: "SPG",
+  [UserRole.CLIENT]: "Client",
 };
 
 const LEVEL_LABELS: Record<string, string> = {

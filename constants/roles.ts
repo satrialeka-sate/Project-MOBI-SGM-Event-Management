@@ -5,6 +5,7 @@ export const ROLES = {
   PERMITTER: UserRole.PERMITTER,
   SPG: UserRole.SPG,
   SUPERVISOR: UserRole.SUPERVISOR,
+  CLIENT: UserRole.CLIENT,
 } as const;
 
 export type Role = UserRole;

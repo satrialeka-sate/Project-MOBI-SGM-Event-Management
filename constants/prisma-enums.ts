@@ -14,6 +14,7 @@ export const UserRole = {
   SUPERVISOR: "SUPERVISOR" as const,
   PERMITTER: "PERMITTER" as const,
   SPG: "SPG" as const,
+  CLIENT: "CLIENT" as const,
 } as const;
 
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
