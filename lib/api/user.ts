@@ -19,6 +19,8 @@ export interface UserItem {
   role: UserRole;
   level: string;
   scope: string;
+  /** The explicit business role (SGM, Starlight, PO, PIC, etc.) */
+  businessRole: string;
   regionId: string;
   status: string;
   isActive: boolean;
@@ -44,6 +46,7 @@ export interface CreateUserData {
   role: string;
   level: string;
   scope: string;
+  businessRole: string;
   regionId: string;
   isActive?: boolean;
 }
@@ -56,6 +59,7 @@ export interface UpdateUserData {
   role?: string;
   level?: string;
   scope?: string;
+  businessRole?: string;
   regionId?: string;
   isActive?: boolean;
 }

@@ -53,6 +53,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           role: user.role,
           level: user.level,
           scope: user.scope,
+          businessRole: user.businessRole,
           regionId: user.regionId,
           image: user.image,
         };
@@ -121,6 +122,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.role = user.role! as UserRole;
         token.level = user.level! as string;
         token.scope = user.scope! as string;
+        token.businessRole = user.businessRole! as string;
         token.regionId = user.regionId! as string;
       } else if (account && profile?.email) {
         // Google sign-in — fetch user data from DB
@@ -133,6 +135,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             role: true,
             level: true,
             scope: true,
+            businessRole: true,
             regionId: true,
           },
         });
@@ -144,6 +147,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.role = dbUser.role;
           token.level = dbUser.level;
           token.scope = dbUser.scope;
+          token.businessRole = dbUser.businessRole;
           token.regionId = dbUser.regionId;
         }
       }
@@ -157,6 +161,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.role = token.role as UserRole;
         session.user.level = token.level as string;
         session.user.scope = token.scope as string;
+        session.user.businessRole = token.businessRole as string;
         session.user.regionId = token.regionId as string;
       }
       return session;

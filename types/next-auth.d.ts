@@ -6,6 +6,7 @@ declare module "next-auth" {
     role?: UserRole;
     level?: string;
     scope?: string;
+    businessRole?: string;
     regionId?: string;
   }
 
@@ -15,6 +16,7 @@ declare module "next-auth" {
       role: UserRole;
       level: string;
       scope: string;
+      businessRole: string;
       regionId: string;
     } & DefaultSession["user"];
   }
@@ -26,6 +28,7 @@ declare module "next-auth/jwt" {
     role: UserRole;
     level: string;
     scope: string;
+    businessRole: string;
     regionId: string;
   }
 }

@@ -10,6 +10,7 @@ export interface UserResponse {
   role: UserRole;
   level: string;
   scope: string;
+  businessRole: string;
   regionId: string;
   status: string;
   isActive: boolean;
@@ -31,6 +32,7 @@ export interface CreateUserInput {
   role: string;
   level: string;
   scope: string;
+  businessRole: string;
   regionId: string;
   isActive?: boolean;
 }
@@ -44,6 +46,7 @@ export interface UpdateUserInput {
   role?: string;
   level?: string;
   scope?: string;
+  businessRole?: string;
   regionId?: string;
   isActive?: boolean;
 }

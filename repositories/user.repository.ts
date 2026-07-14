@@ -11,6 +11,7 @@ const userSelect = {
   role: true,
   level: true,
   scope: true,
+  businessRole: true,
   regionId: true,
   status: true,
   isActive: true,

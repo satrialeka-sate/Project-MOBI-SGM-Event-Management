@@ -15,7 +15,7 @@ export type LoginInput = z.infer<typeof loginSchema>;
  * - email: must be a valid email
  * - password: must follow existing policy (min 8 chars)
  * - phone: optional, must be valid digits/symbols if provided
- * - role: only SPG, TL (Team Leader), or PERMITTER
+ * - role: only SPG, Team Leader, or PERMITTER
  * - regionId: required, must be a non-empty string
  */
 export const registerSchema = z.object({
@@ -42,7 +42,7 @@ export const registerSchema = z.object({
     .optional()
     .or(z.literal("")),
   role: z.enum(["SPG", "TL", "PERMITTER"], {
-    message: "Role must be SPG, TL, or PERMITTER",
+    message: "Role must be SPG, Team Leader, or PERMITTER",
   }),
   regionId: z.string().min(1, "Region is required"),
 });

@@ -6,7 +6,7 @@ import { LogOut, Menu, X, Home, ClipboardList, CalendarRange, Users } from "luci
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { usePermissions } from "@/hooks/use-permissions";
-import { formatRoleLabel } from "@/lib/format-role-label";
+import { formatBusinessRole } from "@/lib/format-business-role";
 
 export default function AppHeader() {
   const { data: session } = useSession();
@@ -44,7 +44,12 @@ export default function AppHeader() {
   ];
 
   const visibleLinks = navLinks.filter((l) => l.show);
-  const roleLabel = formatRoleLabel(session.user.role, session.user.level);
+  // businessRole is available at runtime from auth.ts — cast for type safety
+  const roleLabel = formatBusinessRole(
+    (session.user as { businessRole?: string }).businessRole,
+    session.user.role,
+    session.user.level
+  );
 
   return (
     <header className="sticky top-0 z-50 w-full bg-sgm-red shadow-sm">

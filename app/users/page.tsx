@@ -14,9 +14,7 @@ import {
   Loader2,
   Power,
   PowerOff,
-  Key,
-  Eye,
-  EyeOff,
+
   CheckCircle,
   XCircle,
   Clock,
@@ -41,26 +39,63 @@ import {
 import FormSection from "@/components/FormSection";
 import type { UserItem } from "@/lib/api/user";
 import { UserStatus } from "@/constants/prisma-enums";
+import { formatBusinessRole } from "@/lib/format-business-role";
 
-const ROLE_OPTIONS = [
-  { value: "ADMIN", label: "Admin" },
-  { value: "SUPERVISOR", label: "Supervisor" },
-  { value: "PERMITTER", label: "Permitter" },
-  { value: "SPG", label: "SPG" },
+/**
+ * Level configuration defining all available Level options in the form.
+ * Each entry specifies:
+ * - value: the display value used in the form
+ * - label: user-facing label
+ * - dbLevel: the level value stored in database (mapped to Prisma UserLevel enum)
+ * - role: authorization role automatically assigned
+ * - scope: fixed scope for this level (always auto-set, never manual)
+ *   "ALL" = All Regions (region not required)
+ *   "REGION" = Own Region (region required)
+ */
+const LEVEL_CONFIG = [
+  // ── Supervisor group (Role: SUPERVISOR) ──
+  // SGM, Starlight, PO: ALL REGION (locked)
+  { value: "SGM", label: "SGM", dbLevel: "PO", role: "SUPERVISOR", scope: "ALL" as const },
+  { value: "STARLIGHT", label: "Starlight", dbLevel: "PIC", role: "SUPERVISOR", scope: "ALL" as const },
+  { value: "PO", label: "PO", dbLevel: "PO", role: "SUPERVISOR", scope: "ALL" as const },
+  // PIC: OWN REGION (locked)
+  { value: "PIC", label: "PIC", dbLevel: "PIC", role: "SUPERVISOR", scope: "REGION" as const },
+
+  // ── Admin group (Role: ADMIN) ──
+  { value: "ADMIN_PO", label: "Admin PO", dbLevel: "PO", role: "ADMIN", scope: "ALL" as const },
+  { value: "ADMIN_PIC", label: "Admin PIC", dbLevel: "PIC", role: "ADMIN", scope: "REGION" as const },
+
+  // ── Permitter group (Role: PERMITTER) ──
+  { value: "PERMITTER", label: "Permitter", dbLevel: "PERMITTER", role: "PERMITTER", scope: "REGION" as const },
+
+  // ── SPG group (Role: SPG) ──
+  { value: "SPG", label: "SPG", dbLevel: "SPG", role: "SPG", scope: "REGION" as const },
+  { value: "TL", label: "Team Leader", dbLevel: "TEAM_LEADER", role: "SPG", scope: "REGION" as const },
 ];
 
-const LEVEL_OPTIONS = [
-  { value: "PO", label: "PO" },
-  { value: "PIC", label: "PIC" },
-  { value: "TEAM_LEADER", label: "Team Leader" },
-  { value: "SPG", label: "SPG" },
-  { value: "PERMITTER", label: "Permitter" },
-];
+/** Reverse map: DB (role, level, scope) → form level display value */
+function findFormLevelByDbLevel(dbLevel: string, role?: string, scope?: string): string {
+  // 1. Try exact value match first (e.g., "PIC" → "PIC")
+  const exactMatch = LEVEL_CONFIG.find((l) => l.value === dbLevel);
+  if (exactMatch) return exactMatch.value;
 
-const SCOPE_OPTIONS = [
-  { value: "ALL", label: "All Regions" },
-  { value: "REGION", label: "Own Region" },
-];
+  // 2. Try matching by (role, dbLevel, scope) for disambiguation
+  if (role && scope) {
+    const roleScopeMatch = LEVEL_CONFIG.find(
+      (l) => l.role === role && l.dbLevel === dbLevel && l.scope === scope
+    );
+    if (roleScopeMatch) return roleScopeMatch.value;
+  }
+
+  // 3. Fallback to first dbLevel match
+  const dbMatch = LEVEL_CONFIG.find((l) => l.dbLevel === dbLevel);
+  return dbMatch?.value ?? dbLevel;
+}
+
+/** Get level config for a given form level value */
+function getLevelConfig(levelValue: string) {
+  return LEVEL_CONFIG.find((l) => l.value === levelValue);
+}
 
 const STATUS_TABS = [
   { value: "", label: "All" },
@@ -73,11 +108,13 @@ interface UserFormData {
   name: string;
   username: string;
   email: string;
+  phone: string;
   password: string;
   confirmPassword: string;
   role: string;
   level: string;
   scope: string;
+  businessRole: string;
   regionId: string;
   isActive: boolean;
 }
@@ -86,36 +123,44 @@ const emptyForm: UserFormData = {
   name: "",
   username: "",
   email: "",
+  phone: "",
   password: "",
   confirmPassword: "",
   role: "PERMITTER",
   level: "PERMITTER",
   scope: "REGION",
   regionId: "",
+  businessRole: "PERMITTER",
   isActive: true,
 };
 
 /** Display a user's status with appropriate icon and color */
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, isActive }: { status: string; isActive?: boolean }) {
+  // If status is ACTIVE but user is deactivated, show as Nonaktif
+  const effectiveStatus =
+    status === UserStatus.ACTIVE && isActive === false ? "NONAKTIF" : status;
+
   const colors: Record<string, string> = {
     [UserStatus.PENDING]: "bg-amber-100 text-amber-700",
     [UserStatus.ACTIVE]: "bg-green-100 text-green-700",
     [UserStatus.REJECTED]: "bg-red-100 text-red-700",
+    NONAKTIF: "bg-gray-100 text-gray-600",
   };
   const icons: Record<string, React.ReactNode> = {
     [UserStatus.PENDING]: <Clock className="h-3.5 w-3.5" />,
     [UserStatus.ACTIVE]: <CheckCircle className="h-3.5 w-3.5" />,
     [UserStatus.REJECTED]: <XCircle className="h-3.5 w-3.5" />,
+    NONAKTIF: <PowerOff className="h-3.5 w-3.5" />,
   };
 
   return (
     <span
       className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-        colors[status] || "bg-gray-100 text-gray-600"
+        colors[effectiveStatus] || "bg-gray-100 text-gray-600"
       }`}
     >
-      {icons[status]}
-      {status}
+      {icons[effectiveStatus]}
+      {effectiveStatus === "NONAKTIF" ? "Nonaktif" : effectiveStatus}
     </span>
   );
 }
@@ -136,7 +181,7 @@ export default function UsersPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [formData, setFormData] = useState<UserFormData>(emptyForm);
   const [formError, setFormError] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+
   const [statusFilter, setStatusFilter] = useState("");
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectUserId, setRejectUserId] = useState<string | null>(null);
@@ -173,9 +218,15 @@ export default function UsersPage() {
 
   function openCreateForm() {
     setEditId(null);
+    const defaultLevel = "PERMITTER";
+    const config = getLevelConfig(defaultLevel);
     setFormData({
       ...emptyForm,
-      regionId: currentSession.user.regionId,
+      level: defaultLevel,
+      businessRole: config?.label ?? "Permitter",
+      role: config?.role ?? "PERMITTER",
+      scope: config?.scope ?? "REGION",
+      regionId: "", // Start empty; user fills in if needed
     });
     setFormError("");
     setFormOpen(true);
@@ -183,14 +234,19 @@ export default function UsersPage() {
 
   function openEditForm(user: UserItem) {
     setEditId(user.id);
+    // Map stored DB level back to the closest form level display value
+    const formLevel = findFormLevelByDbLevel(user.level, user.role, user.scope);
+    const config = getLevelConfig(formLevel);
     setFormData({
       name: user.name,
       username: user.username || "",
       email: user.email,
+      phone: user.phone || "",
       password: "",
       confirmPassword: "",
-      role: user.role,
-      level: user.level,
+      role: config?.role ?? user.role,
+      level: formLevel,
+      businessRole: config?.label ?? user.businessRole ?? formLevel,
       scope: user.scope,
       regionId: user.regionId,
       isActive: user.isActive,
@@ -214,54 +270,100 @@ export default function UsersPage() {
   async function handleSubmit() {
     setFormError("");
 
-    if (!formData.name || !formData.username || !formData.email || !formData.role || !formData.level || !formData.scope || !formData.regionId) {
-      setFormError("All fields are required");
+    const levelConfig = getLevelConfig(formData.level);
+    if (!levelConfig) {
+      setFormError("Invalid role selected");
       return;
     }
 
-    if (!editId && formData.password.length < 8) {
-      setFormError("Password must be at least 8 characters");
-      return;
-    }
+    const effectiveScope = levelConfig.scope;
+    const needsRegion = effectiveScope === "REGION";
 
-    if (!editId && formData.password !== formData.confirmPassword) {
-      setFormError("Passwords do not match");
-      return;
-    }
+    if (!editId) {
+      // ── CREATE mode: simplified form ──
+      if (!formData.email) {
+        setFormError("Email is required");
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        setFormError("Please enter a valid email address");
+        return;
+      }
 
-    try {
-      if (editId) {
-        const updateData: Record<string, unknown> = {
-          name: formData.name,
-          username: formData.username,
+      // Quick client-side uniqueness check against loaded users
+      if (safeUsers.some((u) => u.email.toLowerCase() === formData.email.toLowerCase())) {
+        setFormError("This email is already registered");
+        return;
+      }
+      if (needsRegion && !formData.regionId) {
+        setFormError("Region is required for this role");
+        return;
+      }
+
+      // Auto-generate fields
+      const autoName = formData.email.split("@")[0];
+      const autoUsername = formData.email;
+      const autoPassword = "12345678";
+
+      try {
+        await createMutation.mutateAsync({
+          name: autoName,
+          username: autoUsername,
           email: formData.email,
-          role: formData.role,
-          level: formData.level,
-          scope: formData.scope,
-          regionId: formData.regionId,
+          role: levelConfig.role,
+          level: levelConfig.dbLevel,
+          businessRole: levelConfig.label,
+          scope: effectiveScope,
+          regionId: needsRegion ? formData.regionId : currentSession.user.regionId,
+          isActive: formData.isActive,
+          password: autoPassword,
+        });
+        setFormOpen(false);
+        refetch();
+      } catch {
+        // Error handled by mutation
+      }
+    } else {
+      // ── EDIT mode: simplified validation ──
+      if (!formData.email) {
+        setFormError("Email is required");
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        setFormError("Please enter a valid email address");
+        return;
+      }
+      // Check uniqueness if email changed (skip if same as current)
+      if (safeUsers.some((u) => u.id !== editId && u.email.toLowerCase() === formData.email.toLowerCase())) {
+        setFormError("This email is already registered");
+        return;
+      }
+      if (needsRegion && !formData.regionId) {
+        setFormError("Region is required for this role");
+        return;
+      }
+
+      // Auto-generate name from email prefix (consistent with CREATE flow)
+      const autoName = formData.email.split("@")[0];
+
+      try {
+        const updatePayload: Record<string, unknown> = {
+          name: autoName,
+          email: formData.email,
+          role: levelConfig.role,
+          level: levelConfig.dbLevel,
+          businessRole: levelConfig.label,
+          scope: effectiveScope,
+          regionId: needsRegion ? formData.regionId : currentSession.user.regionId,
           isActive: formData.isActive,
         };
-        if (formData.password) {
-          updateData.password = formData.password;
-        }
-        await updateMutation.mutateAsync({ id: editId, data: updateData });
-      } else {
-        await createMutation.mutateAsync({
-          name: formData.name,
-          username: formData.username,
-          email: formData.email,
-          password: formData.password,
-          role: formData.role,
-          level: formData.level,
-          scope: formData.scope,
-          regionId: formData.regionId,
-          isActive: formData.isActive,
-        });
+
+        await updateMutation.mutateAsync({ id: editId, data: updatePayload });
+        setFormOpen(false);
+        refetch();
+      } catch {
+        // Error handled by mutation
       }
-      setFormOpen(false);
-      refetch();
-    } catch {
-      // Error handled by mutation
     }
   }
 
@@ -301,16 +403,6 @@ export default function UsersPage() {
   async function handleToggleActive(userId: string, currentActive: boolean) {
     try {
       await updateMutation.mutateAsync({ id: userId, data: { isActive: !currentActive } });
-      refetch();
-    } catch {
-      // Error handled by mutation
-    }
-  }
-
-  async function handleResetPassword(userId: string) {
-    const newPassword = "12345678";
-    try {
-      await updateMutation.mutateAsync({ id: userId, data: { password: newPassword } });
       refetch();
     } catch {
       // Error handled by mutation
@@ -373,16 +465,35 @@ export default function UsersPage() {
           />
         ) : (
           <>
+            {/* Status Info Card */}
+            <details className="group mb-4 rounded-xl border bg-white p-4 text-sm text-gray-600">
+              <summary className="flex cursor-pointer items-center gap-2 font-medium text-gray-700">
+                <span className="text-xs text-gray-400 transition-transform group-open:rotate-90">▶</span>
+                Status Information
+              </summary>
+              <div className="mt-3 space-y-2 pl-4">
+                <p>
+                  <span className="font-medium text-green-700">Active</span>
+                  {" "}→ User dapat login dan menggunakan sistem seperti biasa.
+                </p>
+                <p>
+                  <span className="font-medium text-amber-700">Nonaktif</span>
+                  {" "}→ User tidak dapat login maupun mengakses sistem.
+                </p>
+                <p className="mt-2 border-t pt-2 text-xs text-gray-400">
+                  Gunakan tombol Nonaktifkan/Aktifkan pada kolom Action untuk mengubah status user tanpa menghapus data.
+                </p>
+              </div>
+            </details>
+
             {/* Desktop Table */}
             <div className="hidden overflow-hidden rounded-xl border bg-white md:block">
               <table className="w-full">
                 <thead>
                   <tr className="border-b bg-gray-50 text-left text-sm font-medium text-gray-500">
                     <th className="px-6 py-3">Name</th>
-                    <th className="px-6 py-3">Username</th>
                     <th className="px-6 py-3">Email</th>
                     <th className="px-6 py-3">Role</th>
-                    <th className="px-6 py-3">Level</th>
                     <th className="px-6 py-3">Status</th>
                     <th className="px-6 py-3 text-right">Actions</th>
                   </tr>
@@ -398,21 +509,13 @@ export default function UsersPage() {
                         {user.name}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
-                        {user.username || "-"}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
                         {user.email}
                       </td>
-                      <td className="px-6 py-4 text-sm">
-                        <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
-                          {user.role}
-                        </span>
-                      </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
-                        {user.level}
+                        {formatBusinessRole(user.businessRole, user.role, user.level)}
                       </td>
                       <td className="px-6 py-4">
-                        <StatusBadge status={user.status} />
+                        <StatusBadge status={user.status} isActive={user.isActive} />
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
@@ -442,21 +545,13 @@ export default function UsersPage() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => handleToggleActive(user.id, user.isActive)}
-                                title={user.isActive ? "Deactivate" : "Activate"}
+                                title={user.isActive ? "Nonaktifkan" : "Aktifkan"}
                               >
                                 {user.isActive ? (
                                   <PowerOff className="h-4 w-4 text-amber-500" />
                                 ) : (
                                   <Power className="h-4 w-4 text-green-500" />
                                 )}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleResetPassword(user.id)}
-                                title="Reset password to 12345678"
-                              >
-                                <Key className="h-4 w-4 text-blue-500" />
                               </Button>
                               <Button
                                 variant="ghost"
@@ -494,11 +589,11 @@ export default function UsersPage() {
                 >
                   <div className="mb-2 flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-900">{user.name}</span>
-                    <StatusBadge status={user.status} />
+                    <StatusBadge status={user.status} isActive={user.isActive} />
                   </div>
                   <div className="space-y-1 text-sm text-gray-500">
-                    <p><span className="font-medium text-gray-700">User:</span> {user.username || user.email}</p>
-                    <p><span className="font-medium text-gray-700">Role:</span> {user.role} · {user.level}</p>
+                    <p><span className="font-medium text-gray-700">Email:</span> {user.email}</p>
+                    <p><span className="font-medium text-gray-700">Role:</span> {formatBusinessRole(user.businessRole, user.role, user.level)}</p>
                   </div>
                   <div className="mt-3 flex gap-2 border-t pt-3" onClick={(e) => e.stopPropagation()}>
                     {canApproveUser && user.status === UserStatus.PENDING && (
@@ -518,7 +613,7 @@ export default function UsersPage() {
                         </Button>
                         <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => handleToggleActive(user.id, user.isActive)}>
                           {user.isActive ? <PowerOff className="mr-1 h-3.5 w-3.5" /> : <Power className="mr-1 h-3.5 w-3.5" />}
-                          {user.isActive ? "Deactivate" : "Activate"}
+                          {user.isActive ? "Nonaktifkan" : "Aktifkan"}
                         </Button>
                       </>
                     )}
@@ -546,133 +641,94 @@ export default function UsersPage() {
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="h-11"
-                placeholder="Full name"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
-              <Input
-                id="username"
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                className="h-11"
-                placeholder="Username"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="h-11"
-                placeholder="email@example.com"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">
-                Password {editId && "(leave blank to keep current)"}
-              </Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="h-11 pr-10"
-                  placeholder={editId ? "New password" : "Min 8 characters"}
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-
-            {!editId && (
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={formData.confirmPassword}
-                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  className="h-11"
-                  placeholder="Repeat password"
-                />
-              </div>
+            {!editId ? (
+              // ── CREATE: simplified form ──
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="h-11"
+                    placeholder="user@company.com"
+                  />
+                  <p className="text-xs text-gray-400">Name will be auto-generated from the email prefix.</p>
+                </div>
+              </>
+            ) : (
+              // ── EDIT: simplified form (same as CREATE) ──
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="h-11"
+                    placeholder="user@company.com"
+                  />
+                  <p className="text-xs text-gray-400">Name will be auto-generated from the email prefix.</p>
+                </div>
+              </>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Role</Label>
-                <select
-                  value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="h-11 w-full rounded-xl border bg-white px-3 text-sm outline-none focus:border-sgm-red focus:ring-2 focus:ring-sgm-red-light"
-                >
-                  {ROLE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Level</Label>
-                <select
-                  value={formData.level}
-                  onChange={(e) => setFormData({ ...formData, level: e.target.value })}
-                  className="h-11 w-full rounded-xl border bg-white px-3 text-sm outline-none focus:border-sgm-red focus:ring-2 focus:ring-sgm-red-light"
-                >
-                  {LEVEL_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <select
+                value={formData.level}
+                onChange={(e) => {
+                  const newLevel = e.target.value;
+                  const config = getLevelConfig(newLevel);
+                  if (config) {
+                    setFormData({
+                      ...formData,
+                      level: newLevel,
+                      role: config.role,
+                      scope: config.scope,
+                      regionId: config.scope === "ALL" ? "" : formData.regionId,
+                    });
+                  }
+                }}
+                className="h-11 w-full rounded-xl border bg-white px-3 text-sm outline-none focus:border-sgm-red focus:ring-2 focus:ring-sgm-red-light"
+              >
+                {LEVEL_CONFIG.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Scope</Label>
-                <select
-                  value={formData.scope}
-                  onChange={(e) => setFormData({ ...formData, scope: e.target.value })}
-                  className="h-11 w-full rounded-xl border bg-white px-3 text-sm outline-none focus:border-sgm-red focus:ring-2 focus:ring-sgm-red-light"
-                >
-                  {SCOPE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
+            {(() => {
+              const levelConfig = getLevelConfig(formData.level);
+              if (!levelConfig) return null;
+              const isAllRegion = levelConfig.scope === "ALL";
 
-              <div className="space-y-2">
-                <Label>Region</Label>
-                <select
-                  value={formData.regionId}
-                  onChange={(e) => setFormData({ ...formData, regionId: e.target.value })}
-                  className="h-11 w-full rounded-xl border bg-white px-3 text-sm outline-none focus:border-sgm-red focus:ring-2 focus:ring-sgm-red-light"
-                >
-                  <option value="">Select Region</option>
-                  {regions?.map((r) => (
-                    <option key={r.id} value={r.id}>{r.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
+              return (
+                <div className="space-y-2">
+                  <Label>Region</Label>
+                  {isAllRegion ? (
+                    <div className="flex h-11 w-full cursor-not-allowed select-none items-center rounded-xl border bg-gray-100 px-3 text-sm text-gray-500">
+                      All Region
+                    </div>
+                  ) : (
+                    <select
+                      value={formData.regionId}
+                      onChange={(e) => setFormData({ ...formData, regionId: e.target.value })}
+                      className={`h-11 w-full rounded-xl border bg-white px-3 text-sm outline-none focus:border-sgm-red focus:ring-2 focus:ring-sgm-red-light ${
+                        !formData.regionId ? "border-red-300" : ""
+                      }`}
+                    >
+                      <option value="">Select Region</option>
+                      {regions?.map((r) => (
+                        <option key={r.id} value={r.id}>{r.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              );
+            })()}
 
             <div className="flex items-center gap-2">
               <input
@@ -797,15 +853,15 @@ export default function UsersPage() {
                   </div>
                   <div>
                     <p className="text-xs font-medium text-gray-500">Role</p>
-                    <p className="text-gray-900">{selectedUser.role}</p>
+                    <p className="font-medium text-gray-900">{formatBusinessRole(selectedUser.businessRole, selectedUser.role, selectedUser.level)}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-medium text-gray-500">Level</p>
-                    <p className="text-gray-900">{selectedUser.level}</p>
+                    <p className="text-xs font-medium text-gray-500">Authorization</p>
+                    <p className="text-gray-900">{selectedUser.role}</p>
                   </div>
                   <div className="col-span-2">
                     <p className="text-xs font-medium text-gray-500">Status</p>
-                    <StatusBadge status={selectedUser.status} />
+                    <StatusBadge status={selectedUser.status} isActive={selectedUser.isActive} />
                   </div>
                 </div>
               </div>

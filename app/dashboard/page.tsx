@@ -8,7 +8,7 @@ import { Loader2, ClipboardList, CalendarRange, ChevronRight, MapPin } from "luc
 import AppHeader from "@/components/AppHeader";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useRegions } from "@/hooks/use-regions";
-import { formatRoleLabel } from "@/lib/format-role-label";
+import { formatBusinessRole } from "@/lib/format-business-role";
 import { UserRole } from "@/constants/prisma-enums";
 import { USER_LEVELS } from "@/constants/user-level";
 
@@ -59,7 +59,12 @@ export default function DashboardPage() {
   if (!session?.user) return null;
 
   const user = session.user;
-  const roleLabel = formatRoleLabel(user.role, user.level);
+  // businessRole is available at runtime from auth.ts — cast for type safety
+  const roleLabel = formatBusinessRole(
+    (user as { businessRole?: string }).businessRole,
+    user.role,
+    user.level
+  );
 
   const isAdminPO =
     user.role === UserRole.ADMIN &&

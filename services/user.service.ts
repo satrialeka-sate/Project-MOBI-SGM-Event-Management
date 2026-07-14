@@ -13,7 +13,7 @@ const TEAM_LEADER = "TL";
 /** Role-to-level mapping for self-registration */
 const SELF_REGISTER_LEVELS: Record<string, string> = {
   SPG: "SPG",
-  PERMITTER: "PERMITTER",
+  PERMITTER: "Permitter",
 };
 
 /** Valid state transitions for user approval */
@@ -50,7 +50,7 @@ function resolveRegistrationRole(role: string): { userRole: string; userLevel: s
   }
 
   throw new AppError(
-    "Invalid role. Allowed roles: SPG, TL, PERMITTER",
+    "Invalid role. Allowed roles: SPG, Team Leader, PERMITTER",
     422
   );
 }
@@ -109,6 +109,12 @@ export const userService = {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
+    // Determine the business role label for self-registration
+    const businessRoleLabel =
+      role === TEAM_LEADER
+        ? "Team Leader"
+        : SELF_REGISTER_LEVELS[role] || role;
+
     // Create user with PENDING status
     const user = await userRepository.create({
       name: name.trim(),
@@ -118,6 +124,7 @@ export const userService = {
       phone: phone?.trim() || null,
       role: userRole as any,
       level: userLevel as any,
+      businessRole: businessRoleLabel,
       scope: "REGION",
       regionId,
       status: UserStatus.PENDING,

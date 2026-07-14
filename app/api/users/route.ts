@@ -49,7 +49,7 @@ export const POST = auth(async function POST(request) {
     requirePermission(session.user.role, PERMISSIONS.USERS_MANAGEMENT.CREATE);
 
     const body = await request.json();
-    const { name, username, email, password, role, level, scope, regionId, isActive } = body;
+    const { name, username, email, phone, password, role, level, scope, businessRole, regionId, isActive } = body;
 
     // Validate required fields
     if (!name || !username || !email || !password || !role || !level || !scope || !regionId) {
@@ -78,10 +78,12 @@ export const POST = auth(async function POST(request) {
       name,
       username,
       email,
+      phone,
       password: hashedPassword,
       role: role as any,
       level: level as any,
       scope: scope as any,
+      businessRole: businessRole || level,
       regionId,
       isActive: isActive !== false,
     });
