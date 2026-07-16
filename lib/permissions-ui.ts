@@ -46,6 +46,8 @@ const rolePermissions: Record<Role, readonly string[]> = {
     "contacts.update",
     "regions.read",
     "schedules.read",
+    "surveys.read",
+    "surveys.create",
   ],
   [ROLES.SUPERVISOR]: [
     "users.read",
@@ -57,12 +59,15 @@ const rolePermissions: Record<Role, readonly string[]> = {
     "reports.read",
     "regions.read",
     "schedules.read",
+    "surveys.read",
+    "surveys.read_region",
   ],
   [ROLES.CLIENT]: [
     "permitters.read",
     "events.read",
     "schedules.read",
     "regions.read",
+    "surveys.read",
   ],
 };
 
@@ -108,6 +113,12 @@ export const can = {
     create: (role: Role) => hasPermission(role, "contacts.create"),
     update: (role: Role) => hasPermission(role, "contacts.update"),
     delete: (role: Role) => hasPermission(role, "contacts.delete"),
+  },
+  survey: {
+    read: (role: Role) => hasPermission(role, "surveys.read"),
+    create: (role: Role) => hasPermission(role, "surveys.create"),
+    readRegion: (role: Role) => hasPermission(role, "surveys.read_region"),
+    readAll: (role: Role) => hasPermission(role, "surveys.read_all"),
   },
   user: {
     read: (role: Role) => hasPermission(role, "users.read"),

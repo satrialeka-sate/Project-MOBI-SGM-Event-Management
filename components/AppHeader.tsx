@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { LogOut, Menu, X, Home, ClipboardList, CalendarRange, Users } from "lucide-react";
+import { LogOut, Menu, X, Home, ClipboardList, CalendarRange, Users, ClipboardCheck } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -12,7 +12,7 @@ export default function AppHeader() {
   const { data: session } = useSession();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
-  const { canReadPermitter, canReadSchedule, canCreateUser } = usePermissions();
+  const { canReadPermitter, canReadSchedule, canCreateUser, canReadSurvey } = usePermissions();
 
   if (!session?.user) return null;
 
@@ -34,6 +34,12 @@ export default function AppHeader() {
       icon: CalendarRange,
       href: "/schedule",
       show: canReadSchedule,
+    },
+    {
+      label: "Survey",
+      icon: ClipboardCheck,
+      href: "/survey",
+      show: canReadSurvey,
     },
     {
       label: "Users",

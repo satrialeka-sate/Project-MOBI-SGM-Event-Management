@@ -45,6 +45,8 @@ const rolePermissions: Record<Role, readonly string[]> = {
     "contacts.update",
     "regions.read",
     "schedules.read",
+    "surveys.read",
+    "surveys.create",
   ],
   [ROLES.SUPERVISOR]: [
     "users.read",
@@ -56,12 +58,15 @@ const rolePermissions: Record<Role, readonly string[]> = {
     "reports.read",
     "regions.read",
     "schedules.read",
+    "surveys.read",
+    "surveys.read_region",
   ],
   [ROLES.CLIENT]: [
     "permitters.read",
     "events.read",
     "schedules.read",
     "regions.read",
+    "surveys.read",
   ],
 };
 

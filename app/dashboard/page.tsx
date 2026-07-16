@@ -4,7 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, ClipboardList, CalendarRange, ChevronRight, MapPin } from "lucide-react";
+import { Loader2, ClipboardList, CalendarRange, ChevronRight, MapPin, ClipboardCheck } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useRegions } from "@/hooks/use-regions";
@@ -29,6 +29,14 @@ const NAV_ITEMS = [
     href: "/schedule",
     permission: "canReadSchedule" as const,
   },
+  {
+    key: "survey",
+    title: "Survey",
+    description: "Survey customer dan lihat report",
+    icon: ClipboardCheck,
+    href: "/survey",
+    permission: "canReadSurvey" as const,
+  },
 ] as const;
 
 export default function DashboardPage() {
@@ -37,10 +45,11 @@ export default function DashboardPage() {
   const {
     canReadPermitter,
     canReadSchedule,
+    canReadSurvey,
   } = usePermissions();
   const { data: regions } = useRegions();
 
-  const permissions = { canReadPermitter, canReadSchedule };
+  const permissions = { canReadPermitter, canReadSchedule, canReadSurvey };
 
   useEffect(() => {
     if (status === "unauthenticated") {

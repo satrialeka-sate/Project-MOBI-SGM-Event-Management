@@ -44,6 +44,12 @@ export const PERMISSIONS = {
   SCHEDULES: {
     READ: "schedules.read",
   },
+  SURVEYS: {
+    CREATE: "surveys.create",
+    READ: "surveys.read",
+    READ_REGION: "surveys.read_region",
+    READ_ALL: "surveys.read_all",
+  },
   USERS_MANAGEMENT: {
     CREATE: "users_management.create",
     READ: "users_management.read",
