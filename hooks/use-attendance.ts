@@ -7,11 +7,11 @@ import { toast } from "sonner";
 
 const ATTENDANCE_KEY = "attendance";
 
-export function useAttendanceList(eventId: string) {
+export function useAttendanceList(eventId: string, enabled?: boolean) {
   return useQuery({
     queryKey: [ATTENDANCE_KEY, eventId],
     queryFn: () => attendanceApi.list(eventId),
-    enabled: !!eventId,
+    enabled: !!eventId && enabled !== false,
   });
 }
 

@@ -73,6 +73,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const { data: session, status: authStatus } = useSession();
   const router = useRouter();
   const {
+    canReadAttendance,
+    canReadSelling,
+    canReadContact,
     canCreateAttendance,
     canDeleteAttendance,
     canCreateSelling,
@@ -83,9 +86,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   } = usePermissions();
 
   const { data: event, isLoading, isError, refetch } = useEvent(id);
-  const { data: attendanceData, refetch: refetchAttendance } = useAttendanceList(id);
-  const { data: sellingData, refetch: refetchSelling } = useSellingList(id);
-  const { data: contactData, refetch: refetchContact } = useContactList(id);
+  const { data: attendanceData, refetch: refetchAttendance } = useAttendanceList(id, canReadAttendance);
+  const { data: sellingData, refetch: refetchSelling } = useSellingList(id, canReadSelling);
+  const { data: contactData, refetch: refetchContact } = useContactList(id, canReadContact);
 
   // Fetch the current user's own attendance for single-attendance-per-user UX
   const { data: myAttendance, refetch: refetchMyAttendance } = useQuery({

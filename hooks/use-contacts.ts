@@ -7,11 +7,11 @@ import { toast } from "sonner";
 
 const CONTACTS_KEY = "contacts";
 
-export function useContactList(eventId: string) {
+export function useContactList(eventId: string, enabled?: boolean) {
   return useQuery({
     queryKey: [CONTACTS_KEY, eventId],
     queryFn: () => contactApi.list(eventId),
-    enabled: !!eventId,
+    enabled: !!eventId && enabled !== false,
   });
 }
 

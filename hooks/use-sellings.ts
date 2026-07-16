@@ -7,11 +7,11 @@ import { toast } from "sonner";
 
 const SELLINGS_KEY = "sellings";
 
-export function useSellingList(eventId: string) {
+export function useSellingList(eventId: string, enabled?: boolean) {
   return useQuery({
     queryKey: [SELLINGS_KEY, eventId],
     queryFn: () => sellingApi.list(eventId),
-    enabled: !!eventId,
+    enabled: !!eventId && enabled !== false,
   });
 }
 
