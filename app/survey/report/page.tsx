@@ -3,17 +3,15 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, BarChart3, Users, Calendar, MapPin } from "lucide-react";
+import { Loader2, ArrowLeft, BarChart3, Users, Calendar, MapPin, Brain, RefreshCw, Sparkles, Lightbulb, AlertTriangle, Target } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import ErrorState from "@/components/ErrorState";
 import { Card, CardContent } from "@/components/ui/card";
 import { usePermissions } from "@/hooks/use-permissions";
-import { useSurveyReport } from "@/hooks/use-survey";
+import { useSurveyReport, useEventAiAnalysis, useRegionAiAnalysis, useAllAiAnalysis, useGenerateEventAiAnalysis, useGenerateRegionAiAnalysis, useGenerateAllAiAnalysis } from "@/hooks/use-survey";
 import { useRegions } from "@/hooks/use-regions";
 import { useEvents } from "@/hooks/use-events";
-import { surveyApi } from "@/lib/api/survey";
 import type { SurveyReport, QuestionStat } from "@/types/survey";
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -148,6 +146,45 @@ export default function SurveyReportPage() {
     startDate: startDate || undefined,
     endDate: endDate || undefined,
   });
+
+  // AI Analysis hooks
+  const hasAiAccess = canReadSurvey; // At minimum, users with surveys.read can use AI
+  const canGenerateAi = canReadSurvey;
+  const canGenerateRegionAi = canReadSurveyRegion || canReadSurveyAll;
+  const canGenerateAllAi = canReadSurveyAll;
+
+  // Determine which AI analysis to fetch based on current filters
+  const { data: eventAiAnalysis, isLoading: isEventAiLoading } = useEventAiAnalysis(
+    selectedEventId || undefined,
+    { enabled: hasAiAccess && !!selectedEventId && !selectedRegionId }
+  );
+  const { data: regionAiAnalysis, isLoading: isRegionAiLoading } = useRegionAiAnalysis(
+    selectedRegionId || undefined,
+    { enabled: hasAiAccess && !!selectedRegionId && !selectedEventId }
+  );
+  const { data: allAiAnalysis, isLoading: isAllAiLoading } = useAllAiAnalysis({
+    enabled: hasAiAccess && !selectedEventId && !selectedRegionId && canGenerateAllAi
+  });
+
+  const aiAnalysis = eventAiAnalysis ?? regionAiAnalysis ?? allAiAnalysis;
+  const isAiLoading = isEventAiLoading || isRegionAiLoading || isAllAiLoading;
+
+  // AI generation mutations
+  const generateEventAi = useGenerateEventAiAnalysis();
+  const generateRegionAi = useGenerateRegionAiAnalysis();
+  const generateAllAi = useGenerateAllAiAnalysis();
+
+  const isGeneratingAi = generateEventAi.isPending || generateRegionAi.isPending || generateAllAi.isPending;
+
+  const handleGenerateAi = () => {
+    if (selectedEventId) {
+      generateEventAi.mutate(selectedEventId);
+    } else if (selectedRegionId) {
+      generateRegionAi.mutate(selectedRegionId);
+    } else {
+      generateAllAi.mutate();
+    }
+  };
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -296,6 +333,143 @@ export default function SurveyReportPage() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* AI Insights Section */}
+            {hasAiAccess && report.totalSurveys > 0 && (
+              <div className="rounded-xl border border-purple-100 bg-gradient-to-br from-purple-50 to-white p-4 shadow-sm md:p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100">
+                      <Brain className="h-4 w-4 text-purple-600" />
+                    </div>
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      🤖 AI Insight
+                    </h2>
+                  </div>
+                  {canGenerateAi && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGenerateAi}
+                      disabled={isGeneratingAi}
+                      className="border-purple-200 text-purple-700 hover:bg-purple-100"
+                    >
+                      {isGeneratingAi ? (
+                        <>
+                          <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                          Menganalisis...
+                        </>
+                      ) : aiAnalysis ? (
+                        <>
+                          <RefreshCw className="mr-1.5 h-4 w-4" />
+                          Refresh Analysis
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="mr-1.5 h-4 w-4" />
+                          Generate AI Analysis
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+
+                {isAiLoading || isGeneratingAi ? (
+                  <div className="space-y-3">
+                    <div className="h-4 w-full animate-pulse rounded bg-purple-100" />
+                    <div className="h-4 w-5/6 animate-pulse rounded bg-purple-100" />
+                    <div className="h-4 w-4/6 animate-pulse rounded bg-purple-100" />
+                    <div className="mt-4 space-y-2">
+                      <div className="h-4 w-2/6 animate-pulse rounded bg-purple-100" />
+                      <div className="h-4 w-3/6 animate-pulse rounded bg-purple-100" />
+                      <div className="h-4 w-3/6 animate-pulse rounded bg-purple-100" />
+                    </div>
+                  </div>
+                ) : aiAnalysis ? (
+                  <div className="space-y-5">
+                    {/* Executive Summary */}
+                    <div>
+                      <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-gray-900">
+                        <Sparkles className="h-4 w-4 text-purple-500" />
+                        Executive Summary
+                      </h3>
+                      <p className="text-sm leading-relaxed text-gray-700">
+                        {aiAnalysis.executiveSummary}
+                      </p>
+                    </div>
+
+                    {/* Key Insights */}
+                    <div>
+                      <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-gray-900">
+                        <Lightbulb className="h-4 w-4 text-amber-500" />
+                        Key Insights
+                      </h3>
+                      <ul className="space-y-1.5">
+                        {aiAnalysis.keyInsights.map((insight, idx) => (
+                          <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
+                            <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-medium text-amber-700">
+                              {idx + 1}
+                            </span>
+                            {insight}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Recommendations */}
+                    <div>
+                      <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-gray-900">
+                        <Target className="h-4 w-4 text-green-500" />
+                        Recommendations
+                      </h3>
+                      <ul className="space-y-1.5">
+                        {aiAnalysis.recommendations.map((rec, idx) => (
+                          <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
+                            <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-100 text-xs font-medium text-green-700">
+                              {idx + 1}
+                            </span>
+                            {rec}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Anomalies / Important Findings */}
+                    {aiAnalysis.anomalies.length > 0 && (
+                      <div>
+                        <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-gray-900">
+                          <AlertTriangle className="h-4 w-4 text-red-500" />
+                          Important Findings / Anomalies
+                        </h3>
+                        <ul className="space-y-1.5">
+                          {aiAnalysis.anomalies.map((anomaly, idx) => (
+                            <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
+                              <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-100 text-xs font-medium text-red-700">
+                                {idx + 1}
+                              </span>
+                              {anomaly}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Generated timestamp */}
+                    <div className="border-t border-purple-100 pt-3 text-xs text-gray-400">
+                      Terakhir diperbarui: {formatDate(aiAnalysis.generatedAt)}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-dashed border-purple-200 bg-white px-6 py-10 text-center">
+                    <Brain className="mx-auto mb-3 h-10 w-10 text-purple-300" />
+                    <h3 className="text-sm font-semibold text-gray-900">Analisis AI Belum Tersedia</h3>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Klik tombol "Generate AI Analysis" untuk mendapatkan insight dari AI berdasarkan data survey.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Questions */}
             {report.questions.map((question, idx) => (
