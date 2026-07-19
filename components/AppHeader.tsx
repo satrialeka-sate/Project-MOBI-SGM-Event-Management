@@ -18,7 +18,7 @@ export default function AppHeader() {
 
   const navLinks = [
     {
-      label: "Main Menu",
+      label: "Menu Permitter",
       icon: Home,
       href: "/dashboard",
       show: true,
@@ -63,7 +63,7 @@ export default function AppHeader() {
         <button
           onClick={() => router.push("/dashboard")}
           className="flex items-center"
-          aria-label="Go to main menu"
+          aria-label="Go to Menu Permitter"
         >
           <img
             src="/SGM_logo.svg"

@@ -181,6 +181,19 @@ export const surveyService = {
     return toSurveyResponse(survey);
   },
 
+  async delete(actor: ActorContext, id: string): Promise<void> {
+    const survey = await surveyRepository.findById(id);
+    if (!survey) {
+      throw new AppError("Survey not found", 404);
+    }
+
+    if (!canAccessRegion(actor.regionId, survey.regionId, actor.scope)) {
+      throw new AppError("Forbidden: you do not have access to this survey", 403);
+    }
+
+    await surveyRepository.deleteById(id);
+  },
+
   async create(actor: ActorContext, data: CreateSurveyInput): Promise<SurveyResponse> {
     // Verify the event exists
     const event = await eventRepository.findById(data.eventId);

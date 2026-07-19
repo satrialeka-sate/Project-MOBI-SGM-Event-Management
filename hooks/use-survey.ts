@@ -48,6 +48,27 @@ export function useCreateSurvey() {
   });
 }
 
+export function useDeleteSurvey() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => surveyApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [SURVEYS_KEY] });
+      toast.success("Survey berhasil dihapus");
+    },
+    onError: (error: unknown) => {
+      // Refresh list to remove stale data (e.g. if survey was already deleted)
+      queryClient.invalidateQueries({ queryKey: [SURVEYS_KEY] });
+
+      const message = error instanceof AxiosError
+        ? (error.response?.data?.message || "Gagal menghapus survey")
+        : "Gagal menghapus survey";
+      toast.error(message);
+    },
+  });
+}
+
 export function useSurveyReport(params: { eventId?: string; regionId?: string; startDate?: string; endDate?: string; enabled?: boolean } = {}) {
   const { enabled, ...queryParams } = params;
   const { canReadSurvey } = usePermissions();

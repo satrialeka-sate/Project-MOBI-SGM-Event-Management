@@ -4,14 +4,14 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Plus, BarChart3, ClipboardCheck, Loader2, ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import { Plus, BarChart3, ClipboardCheck, Loader2, ChevronLeft, ChevronRight, Eye, Trash2 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import SearchBar from "@/components/SearchBar";
 import EmptyState from "@/components/EmptyState";
 import ErrorState from "@/components/ErrorState";
 import { TableSkeleton, CardSkeleton } from "@/components/LoadingSkeleton";
 import { usePermissions } from "@/hooks/use-permissions";
-import { useSurveys } from "@/hooks/use-survey";
+import { useSurveys, useDeleteSurvey } from "@/hooks/use-survey";
 import {
   SURVEY_PROFESSION_LABELS,
   SURVEY_PACKAGE_LABELS,
@@ -23,7 +23,8 @@ export default function SurveyPage() {
   const [page, setPage] = useState(1);
   const limit = 20;
 
-  const { canCreateSurvey, canReadSurvey, canReadSurveyRegion, canReadSurveyAll } = usePermissions();
+  const { canCreateSurvey, canDeleteSurvey, canReadSurvey, canReadSurveyRegion, canReadSurveyAll } = usePermissions();
+  const deleteSurvey = useDeleteSurvey();
   const { data, isLoading, isError, refetch } = useSurveys({
     page,
     limit,
@@ -31,6 +32,13 @@ export default function SurveyPage() {
   });
 
   const canViewReport = canReadSurveyRegion || canReadSurveyAll;
+
+  function handleDelete(id: string, eventName: string) {
+    if (!window.confirm(`Apakah Anda yakin ingin menghapus survey untuk "${eventName}"?`)) {
+      return;
+    }
+    deleteSurvey.mutate(id);
+  }
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -125,13 +133,29 @@ export default function SurveyPage() {
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">{s.createdByName}</td>
                       <td className="px-6 py-4 text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => router.push(`/survey/${s.id}`)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => router.push(`/survey/${s.id}`)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {canDeleteSurvey && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                              disabled={deleteSurvey.isPending}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(s.id, s.eventName);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -144,20 +168,38 @@ export default function SurveyPage() {
               {data.items.map((s) => (
                 <div
                   key={s.id}
-                  className="rounded-xl border bg-white p-4 shadow-sm cursor-pointer active:scale-[0.99] transition-transform"
-                  onClick={() => router.push(`/survey/${s.id}`)}
+                  className="rounded-xl border bg-white p-4 shadow-sm"
                 >
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-900">
-                      {new Date(s.surveyDate).toLocaleDateString("id-ID")}
-                    </span>
-                    <ClipboardCheck className="h-4 w-4 text-sgm-red" />
+                  <div
+                    className="cursor-pointer active:scale-[0.99] transition-transform"
+                    onClick={() => router.push(`/survey/${s.id}`)}
+                  >
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-900">
+                        {new Date(s.surveyDate).toLocaleDateString("id-ID")}
+                      </span>
+                      <ClipboardCheck className="h-4 w-4 text-sgm-red" />
+                    </div>
+                    <div className="space-y-1 text-sm text-gray-500">
+                      <p><span className="font-medium text-gray-700">Event:</span> {s.eventName}</p>
+                      <p><span className="font-medium text-gray-700">Region:</span> {s.regionName}</p>
+                      <p><span className="font-medium text-gray-700">Oleh:</span> {s.createdByName}</p>
+                    </div>
                   </div>
-                  <div className="space-y-1 text-sm text-gray-500">
-                    <p><span className="font-medium text-gray-700">Event:</span> {s.eventName}</p>
-                    <p><span className="font-medium text-gray-700">Region:</span> {s.regionName}</p>
-                    <p><span className="font-medium text-gray-700">Oleh:</span> {s.createdByName}</p>
-                  </div>
+                  {canDeleteSurvey && (
+                    <div className="mt-3 flex justify-end border-t pt-3">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        disabled={deleteSurvey.isPending}
+                        onClick={() => handleDelete(s.id, s.eventName)}
+                      >
+                        <Trash2 className="mr-1.5 h-4 w-4" />
+                        Hapus
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

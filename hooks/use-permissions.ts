@@ -50,6 +50,8 @@ export function usePermissions() {
 
     canReadSurvey: can.survey.read(role),
     canCreateSurvey: can.survey.create(role),
+    canUpdateSurvey: can.survey.update(role),
+    canDeleteSurvey: can.survey.delete(role),
     canReadSurveyRegion: can.survey.readRegion(role),
     canReadSurveyAll: can.survey.readAll(role),
 

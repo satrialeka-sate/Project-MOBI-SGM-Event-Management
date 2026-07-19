@@ -34,3 +34,29 @@ export const GET = auth(async function GET(request, { params }: { params: Promis
     return handleApiError(error);
   }
 });
+
+export const DELETE = auth(async function DELETE(request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const session = request.auth;
+    if (!session?.user) {
+      return errorResponse("Unauthorized", [], 401);
+    }
+
+    requirePermission(session.user.role, SURVEY_PERMISSIONS.DELETE);
+
+    const { id } = await params;
+
+    const actor: ActorContext = {
+      id: session.user.id,
+      role: session.user.role,
+      level: session.user.level,
+      scope: session.user.scope,
+      regionId: session.user.regionId,
+    };
+
+    await surveyService.delete(actor, id);
+    return successResponse(null, "Survey deleted successfully");
+  } catch (error) {
+    return handleApiError(error);
+  }
+});

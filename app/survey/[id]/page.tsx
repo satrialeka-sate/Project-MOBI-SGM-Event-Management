@@ -3,13 +3,14 @@
 import { use } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ClipboardCheck } from "lucide-react";
+import { ArrowLeft, ClipboardCheck, Loader2, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import AppHeader from "@/components/AppHeader";
 import FormSection from "@/components/FormSection";
 import ErrorState from "@/components/ErrorState";
 import { FormSkeleton } from "@/components/LoadingSkeleton";
 import { usePermissions } from "@/hooks/use-permissions";
-import { useSurvey } from "@/hooks/use-survey";
+import { useSurvey, useDeleteSurvey } from "@/hooks/use-survey";
 import {
   SURVEY_PROFESSION_LABELS,
   SURVEY_NOT_BUYING_REASON_LABELS,
@@ -34,8 +35,21 @@ export default function SurveyDetailPage({ params }: { params: Promise<{ id: str
   const { id } = use(params);
   const { data: session, status: authStatus } = useSession();
   const router = useRouter();
-  const { canReadSurvey } = usePermissions();
+  const { canReadSurvey, canDeleteSurvey } = usePermissions();
+  const deleteSurvey = useDeleteSurvey();
   const { data: survey, isLoading, isError, refetch } = useSurvey(id);
+
+  async function handleDelete() {
+    if (!window.confirm(`Apakah Anda yakin ingin menghapus survey ini?`)) {
+      return;
+    }
+    try {
+      await deleteSurvey.mutateAsync(id);
+      router.push("/survey");
+    } catch {
+      // Error toast already shown by mutation onError
+    }
+  }
 
   if (authStatus === "loading" || isLoading) {
     return (
@@ -79,14 +93,28 @@ export default function SurveyDetailPage({ params }: { params: Promise<{ id: str
           <ArrowLeft className="h-4 w-4" /> Back to Survey
         </button>
 
-        <div className="mb-6 flex items-center gap-3">
-          <ClipboardCheck className="h-6 w-6 text-sgm-red" />
-          <div>
-            <h1 className="text-xl font-bold text-gray-900 md:text-2xl">Detail Survey</h1>
-            <p className="text-sm text-gray-500">
-              {survey.eventName} · {new Date(survey.surveyDate).toLocaleDateString("id-ID")}
-            </p>
+        <div className="mb-6 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <ClipboardCheck className="h-6 w-6 text-sgm-red" />
+            <div>
+              <h1 className="text-xl font-bold text-gray-900 md:text-2xl">Detail Survey</h1>
+              <p className="text-sm text-gray-500">
+                {survey.eventName} · {new Date(survey.surveyDate).toLocaleDateString("id-ID")}
+              </p>
+            </div>
           </div>
+          {canDeleteSurvey && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+              disabled={deleteSurvey.isPending}
+              onClick={handleDelete}
+            >
+              <Trash2 className="mr-1.5 h-4 w-4" />
+              Hapus
+            </Button>
+          )}
         </div>
 
         <div className="space-y-4">

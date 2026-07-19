@@ -47,6 +47,7 @@ const rolePermissions: Record<Role, readonly string[]> = {
     "schedules.read",
     "surveys.read",
     "surveys.create",
+    "surveys.update",
   ],
   [ROLES.SUPERVISOR]: [
     "users.read",

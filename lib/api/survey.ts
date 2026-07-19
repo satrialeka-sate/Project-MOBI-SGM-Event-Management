@@ -23,6 +23,11 @@ export const surveyApi = {
     return res.data.data;
   },
 
+  async delete(id: string) {
+    const res = await api.delete<ApiResponse<null>>(`/surveys/${id}`);
+    return res.data;
+  },
+
   async getReport(params: { eventId?: string; regionId?: string; startDate?: string; endDate?: string } = {}) {
     const res = await api.get<ApiResponse<SurveyReport>>("/surveys/report", { params });
     return res.data.data;

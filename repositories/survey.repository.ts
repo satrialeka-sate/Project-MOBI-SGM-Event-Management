@@ -96,6 +96,12 @@ export const surveyRepository = {
     });
   },
 
+  async deleteById(id: string) {
+    return prisma.survey.delete({
+      where: { id },
+    });
+  },
+
   async getReportStats(params: ReportQueryParams & { regionId?: string }) {
     const where: Record<string, unknown> = {};
 

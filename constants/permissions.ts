@@ -47,6 +47,8 @@ export const PERMISSIONS = {
   SURVEYS: {
     CREATE: "surveys.create",
     READ: "surveys.read",
+    UPDATE: "surveys.update",
+    DELETE: "surveys.delete",
     READ_REGION: "surveys.read_region",
     READ_ALL: "surveys.read_all",
   },
