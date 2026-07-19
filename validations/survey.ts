@@ -77,6 +77,14 @@ export const surveyReportQuerySchema = z.object({
   endDate: z.string().optional(),
 });
 
+export const surveyAiQuerySchema = z.object({
+  eventId: z.string().optional(),
+  regionId: z.string().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+});
+
 export type CreateSurveyInput = z.infer<typeof createSurveySchema>;
 export type SurveyQueryInput = z.infer<typeof surveyQuerySchema>;
 export type SurveyReportQueryInput = z.infer<typeof surveyReportQuerySchema>;
+export type SurveyAiQueryInput = z.infer<typeof surveyAiQuerySchema>;

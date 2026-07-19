@@ -62,6 +62,7 @@ const rolePermissions: Record<Role, readonly string[]> = {
     "schedules.read",
     "surveys.read",
     "surveys.read_region",
+    "surveys.read_all",
   ],
   [ROLES.CLIENT]: [
     "permitters.read",

@@ -36,6 +36,15 @@ html {
   overflow-x: hidden;
 }
 
+/* Hide scrollbar but keep scrollable */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* ── Animation Keyframes ── */
 @keyframes fadeIn {
   from { opacity: 0; }
