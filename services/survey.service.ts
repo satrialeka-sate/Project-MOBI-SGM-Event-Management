@@ -25,8 +25,9 @@ import { hasPermission } from "@/lib/rbac";
 
 function toSurveyResponse(survey: {
   id: string;
-  eventId: string;
-  regionId: string;
+  surveyType: string;
+  eventId: string | null;
+  regionId: string | null;
   surveyDate: Date;
   createdBy: string;
   createdAt: Date;
@@ -37,17 +38,18 @@ function toSurveyResponse(survey: {
   package: string;
   favoriteActivity: string;
   memorableImpression: string;
-  crewImpression: string;
-  event: { id: string; venueName: string };
-  region: { id: string; name: string };
+  crewImpression: string | null;
+  event: { id: string; venueName: string } | null;
+  region: { id: string; name: string } | null;
   user: { id: string; name: string };
 }): SurveyResponse {
   return {
     id: survey.id,
+    surveyType: survey.surveyType as SurveyResponse["surveyType"],
     eventId: survey.eventId,
     regionId: survey.regionId,
-    regionName: survey.region.name,
-    eventName: survey.event.venueName,
+    regionName: survey.region?.name ?? "",
+    eventName: survey.event?.venueName ?? "",
     surveyDate: survey.surveyDate.toISOString(),
     createdBy: survey.createdBy,
     createdByName: survey.user.name,
@@ -154,9 +156,10 @@ export const surveyService = {
     const filteredParams = applyRegionFilter(params, actor);
     const { page = 1, limit = 10 } = filteredParams;
 
+    // SPG/Team Leader see all surveys in their region (filtered by applyRegionFilter above),
+    // not just their own. The region filter already restricts to their assigned region.
     const { surveys, total } = await surveyRepository.findAll({
       ...filteredParams,
-      createdBy: actor.role === "SPG" ? actor.id : undefined,
     });
 
     return {
@@ -174,7 +177,12 @@ export const surveyService = {
       throw new AppError("Survey not found", 404);
     }
 
-    if (!canAccessRegion(actor.regionId, survey.regionId, actor.scope)) {
+    // Aggregate surveys (no regionId) — only ALL-scope users can access
+    if (survey.regionId) {
+      if (!canAccessRegion(actor.regionId, survey.regionId, actor.scope)) {
+        throw new AppError("Forbidden: you do not have access to this survey", 403);
+      }
+    } else if (actor.scope !== "ALL") {
       throw new AppError("Forbidden: you do not have access to this survey", 403);
     }
 
@@ -187,7 +195,12 @@ export const surveyService = {
       throw new AppError("Survey not found", 404);
     }
 
-    if (!canAccessRegion(actor.regionId, survey.regionId, actor.scope)) {
+    // Aggregate surveys (no regionId) — only ALL-scope users can delete
+    if (survey.regionId) {
+      if (!canAccessRegion(actor.regionId, survey.regionId, actor.scope)) {
+        throw new AppError("Forbidden: you do not have access to this survey", 403);
+      }
+    } else if (actor.scope !== "ALL") {
       throw new AppError("Forbidden: you do not have access to this survey", 403);
     }
 
@@ -215,7 +228,7 @@ export const surveyService = {
       package: data.package,
       favoriteActivity: data.favoriteActivity,
       memorableImpression: data.memorableImpression,
-      crewImpression: data.crewImpression,
+      crewImpression: data.crewImpression ?? null,
     });
 
     return toSurveyResponse(survey);
@@ -258,9 +271,9 @@ export const surveyService = {
       };
     }
 
-    // Compute summary
-    const uniqueEvents = new Set(surveys.map((s) => s.eventId));
-    const uniqueRegions = new Set(surveys.map((s) => s.regionId));
+    // Compute summary — safely handle nullable eventId/regionId for aggregate surveys
+    const uniqueEvents = new Set(surveys.map((s) => s.eventId).filter(Boolean));
+    const uniqueRegions = new Set(surveys.map((s) => s.regionId).filter(Boolean));
 
     const dates = surveys.map((s) => s.surveyDate.getTime());
     const startDate = new Date(Math.min(...dates)).toISOString();

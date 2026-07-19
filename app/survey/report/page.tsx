@@ -1098,11 +1098,20 @@ export default function SurveyReportPage() {
     setSelectedEventId("");
   };
 
+  const canViewRegionReport = canReadSurveyRegion || canReadSurveyAll;
+
   useEffect(() => {
     if (authStatus === "unauthenticated") {
       router.push("/login");
     }
   }, [authStatus, router]);
+
+  // Redirect unauthorized users (SPG, Team Leader, CLIENT) back to survey list
+  useEffect(() => {
+    if (authStatus === "authenticated" && !canViewRegionReport) {
+      router.push("/survey");
+    }
+  }, [authStatus, router, canViewRegionReport]);
 
   if (authStatus === "loading") {
     return (
@@ -1111,8 +1120,6 @@ export default function SurveyReportPage() {
       </div>
     );
   }
-
-  const canViewRegionReport = canReadSurveyRegion || canReadSurveyAll;
 
   // ─── Extract report data ─────────────────────────────────────────
   const professionQuestion = report ? findQuestion(report, "profession") : undefined;

@@ -8,11 +8,15 @@ import type {
   SurveyCrewImpression,
 } from "@/constants/survey-enums";
 
+/** Survey type discriminator */
+export type SurveyType = "EVENT" | "AGGREGATE";
+
 /** Single survey record */
 export interface SurveyResponse {
   id: string;
-  eventId: string;
-  regionId: string;
+  surveyType: SurveyType;
+  eventId: string | null;
+  regionId: string | null;
   regionName: string;
   eventName: string;
   surveyDate: string;
@@ -34,10 +38,10 @@ export interface SurveyResponse {
   // Question 6
   memorableImpression: SurveyMemorableImpression;
   // Question 7
-  crewImpression: SurveyCrewImpression;
+  crewImpression: SurveyCrewImpression | null;
 }
 
-/** Input for creating a survey */
+/** Input for creating an event-linked survey (from form) */
 export interface CreateSurveyInput {
   eventId: string;
   profession: SurveyProfession;
@@ -46,7 +50,19 @@ export interface CreateSurveyInput {
   package: SurveyPackage;
   favoriteActivity: SurveyFavoriteActivity;
   memorableImpression: SurveyMemorableImpression;
-  crewImpression: SurveyCrewImpression;
+  crewImpression?: SurveyCrewImpression | null;
+}
+
+/** Input for creating an aggregate (legacy import) survey */
+export interface CreateAggregateSurveyInput {
+  surveyDate?: string;
+  profession: SurveyProfession;
+  notBuyingReason: SurveyNotBuyingReason;
+  buyingReason: SurveyBuyingReason;
+  package: SurveyPackage;
+  favoriteActivity: SurveyFavoriteActivity;
+  memorableImpression: SurveyMemorableImpression;
+  crewImpression?: SurveyCrewImpression | null;
 }
 
 /** Query params for listing surveys */

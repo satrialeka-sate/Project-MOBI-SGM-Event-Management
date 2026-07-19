@@ -4,44 +4,38 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, ClipboardList, ClipboardCheck, ChevronRight, MapPin } from "lucide-react";
+import { Loader2, ClipboardList, CalendarRange, ChevronRight, ChevronLeft } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { usePermissions } from "@/hooks/use-permissions";
-import { useRegions } from "@/hooks/use-regions";
-import { formatBusinessRole } from "@/lib/format-business-role";
-import { UserRole } from "@/constants/prisma-enums";
-import { USER_LEVELS } from "@/constants/user-level";
 
-const NAV_ITEMS = [
+const SUB_MENU_ITEMS = [
   {
     key: "permitter",
-    title: "Menu Permitter",
-    description: "Kelola data permitter dan jadwal event",
+    title: "Permitter",
+    description: "Kelola data permitter",
     icon: ClipboardList,
-    href: "/menu-permitter",
-    permissions: ["canReadPermitter" as const, "canReadSchedule" as const],
+    href: "/permitters",
+    permission: "canReadPermitter" as const,
   },
   {
-    key: "survey",
-    title: "Menu Survey",
-    description: "Input survey, rekap data, dan report survey",
-    icon: ClipboardCheck,
-    href: "/menu-survey",
-    permissions: ["canReadSurvey" as const],
+    key: "schedule",
+    title: "Schedule",
+    description: "Lihat jadwal seluruh event",
+    icon: CalendarRange,
+    href: "/schedule",
+    permission: "canReadSchedule" as const,
   },
 ] as const;
 
-export default function DashboardPage() {
+export default function MenuPermitterPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const {
     canReadPermitter,
     canReadSchedule,
-    canReadSurvey,
   } = usePermissions();
-  const { data: regions } = useRegions();
 
-  const permissions = { canReadPermitter, canReadSchedule, canReadSurvey };
+  const permissions = { canReadPermitter, canReadSchedule };
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -59,59 +53,34 @@ export default function DashboardPage() {
 
   if (!session?.user) return null;
 
-  const user = session.user;
-  // businessRole is available at runtime from auth.ts — cast for type safety
-  const roleLabel = formatBusinessRole(
-    (user as { businessRole?: string }).businessRole,
-    user.role,
-    user.level
-  );
-
-  const isAdminPO =
-    user.role === UserRole.ADMIN &&
-    user.level === USER_LEVELS.PO;
-
-  const userRegion = regions?.find((r) => r.id === user.regionId);
-
   return (
     <div className="min-h-screen bg-gray-50">
       <AppHeader />
       <main className="mx-auto max-w-2xl px-4 py-6 md:py-10">
-        {/* Greeting */}
-        <div className="mb-10">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Hello, {user.name}
-          </h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <span className="inline-flex rounded-full bg-sgm-red px-3 py-1 text-xs font-medium text-white">
-              {roleLabel}
-            </span>
-            {!isAdminPO && userRegion && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
-                <MapPin className="h-3 w-3" />
-                {userRegion.name}
-              </span>
-            )}
-          </div>
-        </div>
+        {/* Back Button */}
+        <button
+          className="mb-6 flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+          onClick={() => router.push("/dashboard")}
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Kembali
+        </button>
 
-        {/* Main Menu Title */}
-        <div className="mb-4 text-center">
+        {/* Page Title */}
+        <div className="mb-6 text-center">
           <h2 className="text-xl font-bold text-gray-900">
-            Menu Permitter & Survey
+            Menu Permitter
           </h2>
           <p className="mt-1 text-sm text-gray-500">
             Pilih menu yang tersedia
           </p>
         </div>
 
-        {/* Navigation Cards */}
+        {/* Sub Menu Cards */}
         <nav className="flex flex-col gap-5">
-          {NAV_ITEMS.map((item) => {
+          {SUB_MENU_ITEMS.map((item) => {
             const Icon = item.icon;
-            // Show menu item if user has any of the required permissions
-            const hasAccess = item.permissions.some((p) => permissions[p]);
-            if (!hasAccess) return null;
+            if (!permissions[item.permission]) return null;
 
             return (
               <Card

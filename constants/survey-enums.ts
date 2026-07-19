@@ -105,6 +105,19 @@ export const SURVEY_MEMORABLE_IMPRESSION_LABELS: Record<SurveyMemorableImpressio
   BANYAK_PERMAINAN_ANAK: "Banyak Permainan Untuk Anak-anak",
 };
 
+// ─── Survey type ───────────────────────────────────────────────────────────
+
+export const SURVEY_TYPES = {
+  EVENT: "EVENT" as const,
+  AGGREGATE: "AGGREGATE" as const,
+} as const;
+export type SurveyType = (typeof SURVEY_TYPES)[keyof typeof SURVEY_TYPES];
+
+export const SURVEY_TYPE_LABELS: Record<SurveyType, string> = {
+  EVENT: "Event",
+  AGGREGATE: "Import (Legacy)",
+};
+
 export const SURVEY_CREW_IMPRESSION_LABELS: Record<SurveyCrewImpression, string> = {
   MENYENANGKAN_DAN_RAMAH: "Menyenangkan dan Ramah",
   TERLALU_PENDIAM: "Terlalu Pendiam",

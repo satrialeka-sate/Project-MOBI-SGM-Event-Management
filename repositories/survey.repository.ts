@@ -15,6 +15,24 @@ const surveyInclude = {
   user: { select: { id: true, name: true } },
 } as const;
 
+/** Build a surveyType filter for report queries */
+function buildSurveyTypeFilter(params: ReportQueryParams): Record<string, unknown> {
+  const filter: Record<string, unknown> = {};
+
+  if (params.eventId) {
+    // Event report — only EVENT-type surveys
+    filter.surveyType = "EVENT";
+  } else if (params.regionId) {
+    // Region report — only EVENT-type surveys (aggregate has no region)
+    filter.surveyType = "EVENT";
+  } else {
+    // All-region report — include both EVENT and AGGREGATE
+    // No surveyType filter needed (include all)
+  }
+
+  return filter;
+}
+
 
 
 export const surveyRepository = {
@@ -77,7 +95,7 @@ export const surveyRepository = {
     package: string;
     favoriteActivity: string;
     memorableImpression: string;
-    crewImpression: string;
+    crewImpression?: string | null;
   }) {
     return prisma.survey.create({
       data: {
@@ -118,10 +136,44 @@ export const surveyRepository = {
       where.surveyDate = dateFilter;
     }
 
+    // Apply surveyType filter for event/region reports (exclude AGGREGATE)
+    const surveyTypeFilter = buildSurveyTypeFilter(params);
+    Object.assign(where, surveyTypeFilter);
+
     return prisma.survey.findMany({
       where,
       include: surveyInclude,
       orderBy: { surveyDate: "desc" },
+    });
+  },
+
+  async createAggregate(data: {
+    surveyDate?: Date;
+    createdBy: string;
+    profession: string;
+    notBuyingReason: string;
+    buyingReason: string;
+    package: string;
+    favoriteActivity: string;
+    memorableImpression: string;
+    crewImpression?: string | null;
+  }) {
+    return prisma.survey.create({
+      data: {
+        surveyType: "AGGREGATE",
+        eventId: null,
+        regionId: null,
+        surveyDate: data.surveyDate ?? new Date(),
+        createdBy: data.createdBy,
+        profession: data.profession as any,
+        notBuyingReason: data.notBuyingReason as any,
+        buyingReason: data.buyingReason as any,
+        package: data.package as any,
+        favoriteActivity: data.favoriteActivity as any,
+        memorableImpression: data.memorableImpression as any,
+        crewImpression: data.crewImpression as any,
+      },
+      include: surveyInclude,
     });
   },
 };

@@ -306,10 +306,18 @@ enum SurveyCrewImpression {
   @@map("survey_crew_impression")
 }
 
+enum SurveyType {
+  EVENT
+  AGGREGATE
+
+  @@map("survey_type")
+}
+
 model Survey {
   id                  String                    @id @default(cuid())
-  eventId             String
-  regionId            String
+  surveyType          SurveyType                @default(EVENT)
+  eventId             String?
+  regionId            String?
   surveyDate          DateTime                  @default(now())
   createdBy           String
   createdAt           DateTime                  @default(now())
@@ -328,16 +336,17 @@ model Survey {
   // Question 6
   memorableImpression SurveyMemorableImpression
   // Question 7
-  crewImpression      SurveyCrewImpression
+  crewImpression      SurveyCrewImpression?
 
-  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  region  Region @relation(fields: [regionId], references: [id])
-  user    User   @relation(fields: [createdBy], references: [id])
+  event   Event?  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  region  Region? @relation(fields: [regionId], references: [id])
+  user    User    @relation(fields: [createdBy], references: [id])
 
   @@index([eventId])
   @@index([regionId])
   @@index([createdBy])
   @@index([surveyDate])
+  @@index([surveyType])
   @@map("surveys")
 }
 

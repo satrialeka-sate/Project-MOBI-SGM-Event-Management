@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { LogOut, Menu, X, Home, ClipboardList, CalendarRange, Users, ClipboardCheck } from "lucide-react";
+import { LogOut, Menu, X, Home, ClipboardList, Users, ClipboardCheck } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -18,27 +18,21 @@ export default function AppHeader() {
 
   const navLinks = [
     {
-      label: "Menu Permitter",
+      label: "Dashboard",
       icon: Home,
       href: "/dashboard",
       show: true,
     },
     {
-      label: "Permitters",
+      label: "Permitter",
       icon: ClipboardList,
-      href: "/permitters",
-      show: canReadPermitter,
-    },
-    {
-      label: "Schedule",
-      icon: CalendarRange,
-      href: "/schedule",
-      show: canReadSchedule,
+      href: "/menu-permitter",
+      show: canReadPermitter || canReadSchedule,
     },
     {
       label: "Survey",
       icon: ClipboardCheck,
-      href: "/survey",
+      href: "/menu-survey",
       show: canReadSurvey,
     },
     {
@@ -63,7 +57,7 @@ export default function AppHeader() {
         <button
           onClick={() => router.push("/dashboard")}
           className="flex items-center"
-          aria-label="Go to Menu Permitter"
+          aria-label="Go to Dashboard"
         >
           <img
             src="/SGM_logo.svg"

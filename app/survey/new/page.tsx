@@ -9,7 +9,7 @@ import { Loader2, ArrowLeft, Send, ClipboardCheck } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import FormSection from "@/components/FormSection";
 import { usePermissions } from "@/hooks/use-permissions";
-import { useEvents } from "@/hooks/use-events";
+import EventSearchSelect from "@/components/EventSearchSelect";
 import { useCreateSurvey } from "@/hooks/use-survey";
 import { AxiosError } from "axios";
 import { toast } from "sonner";
@@ -55,11 +55,6 @@ export default function NewSurveyPage() {
   const [crewImpression, setCrewImpression] = useState("");
   const [submitError, setSubmitError] = useState("");
 
-  // Fetch events for SPG to select
-  const { data: eventsData } = useEvents({
-    limit: 50,
-    enabled: canCreateSurvey,
-  });
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -86,8 +81,7 @@ export default function NewSurveyPage() {
     buyingReason &&
     selectedPackage &&
     favoriteActivity &&
-    memorableImpression &&
-    crewImpression;
+    memorableImpression;
 
   async function handleSubmit() {
     if (!isFormValid) return;
@@ -102,7 +96,7 @@ export default function NewSurveyPage() {
         package: selectedPackage as any,
         favoriteActivity: favoriteActivity as any,
         memorableImpression: memorableImpression as any,
-        crewImpression: crewImpression as any,
+        crewImpression: (crewImpression || null) as any,
       });
       // Reset form
       setSelectedEventId("");
@@ -181,19 +175,10 @@ export default function NewSurveyPage() {
           <FormSection title="Pilih Event">
             <div className="space-y-2">
               <Label>Event (Venue)</Label>
-              <select
+              <EventSearchSelect
                 value={selectedEventId}
-                onChange={(e) => setSelectedEventId(e.target.value)}
-                className="h-11 w-full rounded-xl border bg-white px-3 text-sm outline-none focus:border-sgm-red focus:ring-2 focus:ring-sgm-red-light"
-                required
-              >
-                <option value="">Pilih Event</option>
-                {eventsData?.items.map((ev) => (
-                  <option key={ev.id} value={ev.id}>
-                    {ev.venueName} - {new Date(ev.eventDate).toLocaleDateString("id-ID")}
-                  </option>
-                ))}
-              </select>
+                onChange={setSelectedEventId}
+              />
             </div>
           </FormSection>
 

@@ -31,6 +31,7 @@ export default function SurveyPage() {
     enabled: canReadSurvey,
   });
 
+  // Report hanya untuk yang punya akses region atau all
   const canViewReport = canReadSurveyRegion || canReadSurveyAll;
 
   function handleDelete(id: string, eventName: string) {
