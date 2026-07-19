@@ -4,8 +4,23 @@ import { surveyService } from "@/services/survey.service";
 import type { ActorContext } from "@/types/auth";
 import type { SurveyAiResult, SurveyAiAggregatePayload, SurveyAiAnalysis } from "@/types/survey-ai";
 import { AppError } from "@/lib/errors";
+import {
+  getProfessionLabel,
+  getBuyingReasonLabel,
+  getNotBuyingReasonLabel,
+  getPackageLabel,
+  getFavoriteActivityLabel,
+  getMemorableImpressionLabel,
+  getCrewImpressionLabel,
+  transformSurveyCounts,
+} from "@/lib/survey-label";
 
-// Lazily initialized OpenAI client
+// ─── Constants ─────────────────────────────────────────────────────────
+const MAX_RETRIES = 3;
+const OPENAI_MODEL = "gpt-5.5";
+const MAX_OUTPUT_TOKENS = 2000;
+
+// ─── Lazily initialized OpenAI client ───────────────────────────────────
 function getOpenAIClient(): OpenAI {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -14,6 +29,108 @@ function getOpenAIClient(): OpenAI {
   return new OpenAI({ apiKey });
 }
 
+// ─── Logging helper ─────────────────────────────────────────────────────
+function logSection(label: string, content: unknown): void {
+  const bar = "═".repeat(60);
+  console.log(`\n${bar}`);
+  console.log(`  ${label}`);
+  console.log(`${bar}`);
+  if (typeof content === "string") {
+    console.log(content);
+  } else {
+    console.log(JSON.stringify(content, null, 2));
+  }
+  console.log(`${bar}\n`);
+}
+
+// ─── Robust JSON extraction ─────────────────────────────────────────────
+/**
+ * Extracts the first valid JSON object from a string.
+ * Handles:
+ *   - Markdown code fences (```json ... ```)
+ *   - Leading/trailing text before/after JSON
+ *   - Whitespace padding
+ *   - Single-quoted keys (replaces with double-quoted)
+ *   - Trailing commas
+ */
+function extractJson(raw: string): string {
+  let cleaned = raw.trim();
+
+  // 1. Strip markdown code fences (```json ... ``` or ``` ... ```)
+  const fenceRegex = /^```(?:json)?\s*\n?([\s\S]*?)\n?```\s*$/;
+  const fenceMatch = cleaned.match(fenceRegex);
+  if (fenceMatch) {
+    cleaned = fenceMatch[1].trim();
+  }
+
+  // 2. Find the first '{' and last '}'
+  const firstBrace = cleaned.indexOf("{");
+  const lastBrace = cleaned.lastIndexOf("}");
+  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+    throw new SyntaxError("No JSON object found in response");
+  }
+
+  cleaned = cleaned.slice(firstBrace, lastBrace + 1);
+
+  // 3. Remove trailing commas before closing braces/brackets
+  cleaned = cleaned.replace(/,\s*}/g, "}");
+  cleaned = cleaned.replace(/,\s*\]/g, "]");
+
+  return cleaned;
+}
+
+/**
+ * Safely parse JSON with error context.
+ */
+function safeParse(raw: string): Record<string, unknown> {
+  const jsonString = extractJson(raw);
+  try {
+    const parsed = JSON.parse(jsonString);
+    if (typeof parsed !== "object" || parsed === null) {
+      throw new SyntaxError("Parsed JSON is not an object");
+    }
+    return parsed as Record<string, unknown>;
+  } catch (err) {
+    // Re-throw with more context
+    const syntaxErr = err instanceof SyntaxError ? err : new SyntaxError(String(err));
+    (syntaxErr as any).rawAttempt = jsonString;
+    throw syntaxErr;
+  }
+}
+
+// ─── Response validation ────────────────────────────────────────────────
+interface ValidationResult {
+  valid: boolean;
+  errors: string[];
+}
+
+function validateAiResponse(parsed: Record<string, unknown>): ValidationResult {
+  const errors: string[] = [];
+  const keyInsights = parsed.keyInsights as unknown[];
+
+  // keyInsights must be an array of strings, exactly 5 items
+  if (!Array.isArray(keyInsights)) {
+    errors.push("keyInsights must be an array");
+  } else {
+    if (keyInsights.length !== 5) {
+      errors.push(`keyInsights must have exactly 5 items (got ${keyInsights.length})`);
+    }
+    for (let i = 0; i < keyInsights.length; i++) {
+      if (typeof keyInsights[i] !== "string") {
+        errors.push(`keyInsights[${i}] must be a string`);
+      }
+    }
+  }
+
+  // conclusion must be a non-empty string
+  if (typeof parsed.conclusion !== "string" || parsed.conclusion.trim().length === 0) {
+    errors.push("conclusion must be a non-empty string");
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+// ─── Build aggregate payload ────────────────────────────────────────────
 /**
  * Build an aggregate payload from the existing survey report data.
  * Reuses surveyService.getReport() so all calculations are done by Prisma/SQL.
@@ -35,23 +152,24 @@ async function buildAggregatePayload(
   }
 
   // Transform SurveyReport questions into record<string, number> format
-  const profession: Record<string, number> = {};
-  const purchaseReason: Record<string, number> = {};
-  const noPurchaseReason: Record<string, number> = {};
-  const packageBought: Record<string, number> = {};
-  const favoriteActivity: Record<string, number> = {};
-  const memorableImpression: Record<string, number> = {};
-  const crewImpression: Record<string, number> = {};
+  // All enum keys are immediately converted to human-readable labels.
+  const rawProfession: Record<string, number> = {};
+  const rawPurchaseReason: Record<string, number> = {};
+  const rawNoPurchaseReason: Record<string, number> = {};
+  const rawPackageBought: Record<string, number> = {};
+  const rawFavoriteActivity: Record<string, number> = {};
+  const rawMemorableImpression: Record<string, number> = {};
+  const rawCrewImpression: Record<string, number> = {};
 
   // Map questionKey to the target record
   const questionMap: Record<string, Record<string, number>> = {
-    profession,
-    buyingReason: purchaseReason,
-    notBuyingReason: noPurchaseReason,
-    package: packageBought,
-    favoriteActivity,
-    memorableImpression,
-    crewImpression,
+    profession: rawProfession,
+    buyingReason: rawPurchaseReason,
+    notBuyingReason: rawNoPurchaseReason,
+    package: rawPackageBought,
+    favoriteActivity: rawFavoriteActivity,
+    memorableImpression: rawMemorableImpression,
+    crewImpression: rawCrewImpression,
   };
 
   for (const question of report.questions) {
@@ -62,6 +180,15 @@ async function buildAggregatePayload(
       }
     }
   }
+
+  // Convert enum keys to human-readable labels
+  const profession = transformSurveyCounts(rawProfession, getProfessionLabel);
+  const purchaseReason = transformSurveyCounts(rawPurchaseReason, getBuyingReasonLabel);
+  const noPurchaseReason = transformSurveyCounts(rawNoPurchaseReason, getNotBuyingReasonLabel);
+  const packageBought = transformSurveyCounts(rawPackageBought, getPackageLabel);
+  const favoriteActivity = transformSurveyCounts(rawFavoriteActivity, getFavoriteActivityLabel);
+  const memorableImpression = transformSurveyCounts(rawMemorableImpression, getMemorableImpressionLabel);
+  const crewImpression = transformSurveyCounts(rawCrewImpression, getCrewImpressionLabel);
 
   return {
     totalSurveys: report.totalSurveys,
@@ -79,118 +206,246 @@ async function buildAggregatePayload(
   };
 }
 
-/**
- * Build the prompt for OpenAI using the aggregate payload.
- */
+// ─── Build prompt for OpenAI ────────────────────────────────────────────
 function buildPrompt(payload: SurveyAiAggregatePayload): string {
-  return `Anda adalah analis data survey acara SGM Ruang Tumbuh Lebih. 
-Analisis data survey berikut dan berikan output dalam format JSON valid.
-
-DATA SURVEY:
-- Total Survey: ${payload.totalSurveys}
-- Total Event: ${payload.totalEvents}
-- Total Region: ${payload.totalRegions}
-- Periode: ${payload.periodStart} sampai ${payload.periodEnd}
-
-PROFESI RESPONDEN:
-${JSON.stringify(payload.profession, null, 2)}
-
-ALASAN MEMBELI:
-${JSON.stringify(payload.purchaseReason, null, 2)}
-
-ALASAN TIDAK MEMBELI:
-${JSON.stringify(payload.noPurchaseReason, null, 2)}
-
-PAKET YANG DIBELI:
-${JSON.stringify(payload.packageBought, null, 2)}
-
-AKTIVITAS FAVORIT:
-${JSON.stringify(payload.favoriteActivity, null, 2)}
-
-KESAN YANG DIINGAT:
-${JSON.stringify(payload.memorableImpression, null, 2)}
-
-KESAN TERHADAP CREW:
-${JSON.stringify(payload.crewImpression, null, 2)}
-
-Berikan output JSON dengan format berikut (gunakan Bahasa Indonesia):
-{
-  "executiveSummary": "Ringkasan eksekutif 2-3 paragraf tentang hasil survey secara keseluruhan",
-  "keyInsights": ["Insight 1", "Insight 2", "Insight 3", ...],
-  "recommendations": ["Rekomendasi 1", "Rekomendasi 2", "Rekomendasi 3", ...],
-  "anomalies": ["Temuan penting / anomali 1", ...]
-}
-
-Pastikan:
-- Gunakan Bahasa Indonesia yang baik dan benar
-- keyInsights: maksimal 5 butir
-- recommendations: maksimal 5 butir
-- anomalies: maksimal 3 butir
-- Berdasarkan data nyata, jangan mengada-adakan data
-- Jangan menyebutkan nama individu atau data pribadi`;
-}
-
-/**
- * Call OpenAI Responses API and parse the JSON response.
- *
- * Uses the Responses API (client.responses.create()) which is the recommended
- * API for GPT-5.5. This replaces the legacy Chat Completions API.
- *
- * Key differences from Chat Completions:
- * - `instructions` replaces the system message (messages[0].role="system")
- * - `input` replaces the user message (messages[1].role="user")
- * - `text.format` replaces `response_format`
- * - `max_output_tokens` replaces `max_completion_tokens` / `max_tokens`
- * - `temperature` is NOT supported with GPT-5.5 (only default 1)
- * - Response uses `output_text` instead of `choices[0].message.content`
- */
-async function callOpenAI(prompt: string): Promise<SurveyAiResult> {
-  try {
-    const openai = getOpenAIClient();
-
-    const response = await openai.responses.create({
-      model: "gpt-5.5",
-      instructions: "Anda adalah analis data survey yang ahli. Selalu merespon dengan JSON valid.",
-      input: prompt,
-      text: {
-        format: {
-          type: "json_object" as const,
-        },
-      },
-      max_output_tokens: 2000,
-    });
-
-    const content = response.output_text;
-    if (!content) {
-      throw new AppError("OpenAI returned empty response", 500);
-    }
-
-    const parsed = JSON.parse(content) as SurveyAiResult;
-
-    // Validate the response structure
-    if (!parsed.executiveSummary || !parsed.keyInsights || !parsed.recommendations || !parsed.anomalies) {
-      throw new AppError("Invalid AI response structure", 500);
-    }
-
-    return {
-      executiveSummary: parsed.executiveSummary,
-      keyInsights: Array.isArray(parsed.keyInsights) ? parsed.keyInsights : [],
-      recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
-      anomalies: Array.isArray(parsed.anomalies) ? parsed.anomalies : [],
-    };
-  } catch (error) {
-    if (error instanceof AppError) throw error;
-    if (error instanceof SyntaxError) {
-      throw new AppError("Failed to parse AI response", 500);
-    }
-    console.error("OpenAI API error:", error);
-    throw new AppError("AI analysis service unavailable", 503);
+  // Format survey data as a clean, client-friendly text summary
+  function fmt(data: Record<string, number>): string {
+    return Object.entries(data)
+      .sort((a, b) => b[1] - a[1])
+      .map(([label, count]) => {
+        const pct = ((count / payload.totalSurveys) * 100).toFixed(1);
+        return `- ${label} : ${pct}%`;
+      })
+      .join("\n");
   }
+
+  return `
+Anda adalah seorang Senior Business Intelligence Analyst yang bertugas menganalisis hasil survey Event SGM Ruang Tumbuh Lebih.
+
+Tugas Anda adalah membuat analisis berdasarkan DATA NYATA yang diberikan. Jangan membuat asumsi atau menambahkan data yang tidak ada.
+
+=========================
+INFORMASI UMUM
+=========================
+
+Total Survey      : ${payload.totalSurveys}
+Total Event       : ${payload.totalEvents}
+Total Region      : ${payload.totalRegions}
+Periode Survey    : ${payload.periodStart} sampai ${payload.periodEnd}
+
+=========================
+HASIL SURVEY
+=========================
+
+PROFESI RESPONDEN
+${fmt(payload.profession)}
+
+ALASAN MEMBELI
+${fmt(payload.purchaseReason)}
+
+ALASAN TIDAK MEMBELI
+${fmt(payload.noPurchaseReason)}
+
+PAKET YANG DIBELI
+${fmt(payload.packageBought)}
+
+AKTIVITAS FAVORIT
+${fmt(payload.favoriteActivity)}
+
+KESAN YANG PALING DIINGAT
+${fmt(payload.memorableImpression)}
+
+KESAN TERHADAP CREW EVENT
+${fmt(payload.crewImpression)}
+
+=========================
+TUGAS ANALISIS
+=========================
+
+Lakukan analisis terhadap seluruh data survey di atas.
+
+Analisis harus mampu menemukan:
+- Pola jawaban responden.
+- Tren pembelian.
+- Perilaku konsumen.
+- Aktivitas favorit selama event.
+- Faktor utama yang memengaruhi pembelian.
+- Persepsi konsumen terhadap event.
+- Persepsi konsumen terhadap kru (man power).
+- Peluang peningkatan kualitas event berikutnya.
+
+Jangan membuat asumsi yang tidak didukung oleh data.
+
+=========================
+OUTPUT — FORMAT WAJIB
+=========================
+
+Balas HANYA dengan JSON valid. Ikuti format di bawah ini PERSIS.
+
+Jangan gunakan markdown.
+Jangan gunakan \`\`\`json.
+Jangan tambahkan kalimat pembuka atau penutup.
+Jangan berikan penjelasan apa pun di luar JSON.
+
+{
+  "keyInsights": [
+    "Insight 1 — berdasarkan data, 1-3 kalimat.",
+    "Insight 2 — berdasarkan data, 1-3 kalimat.",
+    "Insight 3 — berdasarkan data, 1-3 kalimat.",
+    "Insight 4 — berdasarkan data, 1-3 kalimat.",
+    "Insight 5 — berdasarkan data, 1-3 kalimat."
+  ],
+  "conclusion": "Kesimpulan analisis sepanjang 5-10 kalimat yang merangkum seluruh hasil survey."
 }
 
-/**
- * Determine the scope label from params
- */
+=========================
+ATURAN PENULISAN
+=========================
+
+1. Gunakan Bahasa Indonesia yang profesional, mudah dipahami, dan cocok ditampilkan langsung kepada client tanpa perlu diedit.
+
+2. keyInsights: Tepat 5 poin, masing-masing 1-3 kalimat, berdasarkan data.
+
+3. conclusion: 5-10 kalimat yang merangkum seluruh hasil survey.
+   - Jelaskan gambaran umum hasil survey.
+   - Sebutkan kecenderungan perilaku konsumen.
+   - Jelaskan faktor yang paling memengaruhi pembelian.
+   - Jelaskan aktivitas yang paling diminati.
+   - Jelaskan persepsi konsumen terhadap event dan kru.
+   - Tutup dengan rekomendasi profesional.
+
+4. Jangan mengarang data atau persentase yang tidak terdapat pada input.
+
+5. Kembalikan HANYA JSON. Tanpa markdown. Tanpa \`\`\`. Tanpa teks lain.
+`;
+}
+
+// ─── Call OpenAI with retry ─────────────────────────────────────────────
+async function callOpenAI(prompt: string): Promise<SurveyAiResult> {
+  const startTime = Date.now();
+  let lastError: Error | null = null;
+
+  // Log the prompt once
+  logSection("PROMPT SENT TO OPENAI", prompt);
+  logSection("MODEL USED", OPENAI_MODEL);
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      if (attempt > 1) {
+        console.log(`\n🔄 Retry attempt ${attempt}/${MAX_RETRIES}...`);
+      }
+
+      const openai = getOpenAIClient();
+
+      const response = await openai.responses.create({
+        model: OPENAI_MODEL,
+        instructions:
+          "Anda adalah analis data survey yang ahli. " +
+          "Anda HANYA boleh merespon dengan JSON murni. " +
+          "Jangan gunakan markdown. Jangan gunakan ```json. " +
+          "Jangan tambahkan teks apa pun di luar JSON.",
+        input: prompt,
+        text: {
+          format: {
+            type: "json_object" as const,
+          },
+        },
+        max_output_tokens: MAX_OUTPUT_TOKENS,
+      });
+
+      const content = response.output_text;
+      const duration = Date.now() - startTime;
+
+      // Log raw response
+      logSection(`RAW OPENAI RESPONSE (attempt ${attempt}, ${duration}ms)`, content || "(empty)");
+
+      if (!content || content.trim().length === 0) {
+        lastError = new Error("OpenAI returned empty response");
+        logSection("ERROR", `Attempt ${attempt}: ${lastError.message}`);
+        continue; // retry
+      }
+
+      // Parse JSON (with markdown stripping, etc.)
+      let parsed: Record<string, unknown>;
+      try {
+        parsed = safeParse(content);
+      } catch (parseErr) {
+        const errMsg = parseErr instanceof SyntaxError ? parseErr.message : String(parseErr);
+        lastError = new Error(`JSON parse failed: ${errMsg}`);
+
+        logSection("JSON PARSE ERROR", {
+          attempt,
+          error: errMsg,
+          rawResponse: content,
+          extractedJson: parseErr instanceof SyntaxError ? (parseErr as any).rawAttempt : null,
+        });
+
+        if (attempt < MAX_RETRIES) continue;
+        throw new AppError(
+          `AI analysis failed after ${MAX_RETRIES} attempts: JSON parse error - ${errMsg}`,
+          500
+        );
+      }
+
+      // Log parsed result
+      logSection("PARSED JSON", parsed);
+
+      // Validate response structure
+      const validation = validateAiResponse(parsed);
+      if (!validation.valid) {
+        lastError = new Error(`Invalid response structure: ${validation.errors.join("; ")}`);
+
+        logSection("VALIDATION ERROR", {
+          attempt,
+          errors: validation.errors,
+          parsed,
+        });
+
+        if (attempt < MAX_RETRIES) continue;
+        throw new AppError(
+          `AI analysis failed after ${MAX_RETRIES} attempts: ${lastError.message}`,
+          500
+        );
+      }
+
+      // Success — return clean result
+      const result: SurveyAiResult = {
+        keyInsights: parsed.keyInsights as string[],
+        conclusion: (parsed.conclusion as string).trim(),
+      };
+
+      logSection("FINAL PARSED RESULT", result);
+      console.log(`⏱️  Total duration: ${Date.now() - startTime}ms`);
+
+      return result;
+    } catch (error) {
+      // Re-throw AppError immediately (these are domain errors, not retryable)
+      if (error instanceof AppError) throw error;
+
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      if (attempt < MAX_RETRIES) {
+        console.log(`\n⚠️  Attempt ${attempt} failed: ${lastError.message}. Retrying...`);
+      } else {
+        // All retries exhausted
+        logSection("ALL RETRIES EXHAUSTED", {
+          attempts: MAX_RETRIES,
+          lastError: lastError.message,
+          duration: Date.now() - startTime,
+        });
+        throw new AppError(
+          `AI analysis failed after ${MAX_RETRIES} attempts: ${lastError.message}`,
+          500
+        );
+      }
+    }
+  }
+
+  // Should never reach here
+  throw new AppError("AI analysis failed unexpectedly", 500);
+}
+
+// ─── Determine scope label ──────────────────────────────────────────────
 function determineScope(params: {
   eventId?: string;
   regionId?: string;
@@ -200,6 +455,7 @@ function determineScope(params: {
   return "ALL";
 }
 
+// ─── Exported service ───────────────────────────────────────────────────
 export const surveyAiService = {
   /**
    * Get cached AI analysis for the given scope.
@@ -237,7 +493,7 @@ export const surveyAiService = {
       endDate: params.endDate,
     });
 
-    // Build prompt and call OpenAI
+    // Build prompt and call OpenAI (with retry)
     const prompt = buildPrompt(aggregatePayload);
     const result = await callOpenAI(prompt);
 
@@ -256,10 +512,11 @@ export const surveyAiService = {
       regionId: params.regionId ?? null,
       periodStart: aggregatePayload.periodStart ? new Date(aggregatePayload.periodStart) : null,
       periodEnd: aggregatePayload.periodEnd ? new Date(aggregatePayload.periodEnd) : null,
-      executiveSummary: result.executiveSummary,
+      // Map conclusion → executiveSummary for DB storage (field reuse)
+      executiveSummary: result.conclusion,
       keyInsights: result.keyInsights,
-      recommendations: result.recommendations,
-      anomalies: result.anomalies,
+      recommendations: [],
+      anomalies: [],
       generatedBy: actor.id,
     });
   },

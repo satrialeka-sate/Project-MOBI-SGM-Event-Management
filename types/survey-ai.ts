@@ -1,9 +1,7 @@
-/** Result from OpenAI analysis */
+/** Result from OpenAI analysis — new simplified format */
 export interface SurveyAiResult {
-  executiveSummary: string;
   keyInsights: string[];
-  recommendations: string[];
-  anomalies: string[];
+  conclusion: string;
 }
 
 /** SurveyAiAnalysis record from database */
@@ -14,6 +12,7 @@ export interface SurveyAiAnalysis {
   regionId: string | null;
   periodStart: string | null;
   periodEnd: string | null;
+  /** Now stores the conclusion (not an "executive summary") */
   executiveSummary: string;
   keyInsights: string[];
   recommendations: string[];
