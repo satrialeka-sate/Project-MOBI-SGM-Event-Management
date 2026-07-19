@@ -340,3 +340,23 @@ model Survey {
   @@index([surveyDate])
   @@map("surveys")
 }
+
+model SurveyAiAnalysis {
+  id                String   @id @default(cuid())
+  scope             String   // EVENT | REGION | ALL
+  eventId           String?
+  regionId          String?
+  periodStart       DateTime?
+  periodEnd         DateTime?
+
+  executiveSummary  String
+  keyInsights       Json
+  recommendations   Json
+  anomalies         Json
+
+  generatedAt       DateTime @default(now())
+  generatedBy       String?
+
+  @@index([scope, eventId, regionId])
+  @@map("survey_ai_analyses")
+}
