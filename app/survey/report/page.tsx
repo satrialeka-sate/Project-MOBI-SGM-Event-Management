@@ -21,6 +21,8 @@ import { useRegions } from "@/hooks/use-regions";
 import { useEvents } from "@/hooks/use-events";
 import type { SurveyReport, QuestionStat, AnswerStat } from "@/types/survey";
 import type { SurveyAiAnalysis } from "@/types/survey-ai";
+import type { DateRange } from "@/components/ui/date-range-picker";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, LabelList,
@@ -84,6 +86,18 @@ function chartData(answers: AnswerStat[]) {
 
 function totalAnswers(answers: AnswerStat[]) {
   return answers.reduce((sum, a) => sum + a.count, 0);
+}
+
+function formatShortDate(d: Date): string {
+  return d.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function toISODateString(d: Date): string {
+  return d.toISOString().split("T")[0];
 }
 
 // ─── Custom Tooltip ────────────────────────────────────────────────────
@@ -486,9 +500,9 @@ function RadialProgressChartCard({ answers }: { answers: AnswerStat[] }) {
 }
 
 // ─── 6. Memorable Impression (Bar + Circular Combo) ───────────────────
-function CircularPercentage({ percentage, color, label }: { percentage: number; color: string; label: string }) {
-  const radius = 32;
-  const strokeWidth = 5;
+function CircularPercentage({ percentage, color }: { percentage: number; color: string; label?: string }) {
+  const radius = 22;
+  const strokeWidth = 4;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (percentage / 100) * circumference;
   const center = radius + strokeWidth;
@@ -523,14 +537,13 @@ function CircularPercentage({ percentage, color, label }: { percentage: number; 
           y={center}
           textAnchor="middle"
           dominantBaseline="central"
-          fontSize="11"
+          fontSize="9"
           fontWeight="bold"
           fill={color}
         >
           {percentage}%
         </text>
       </svg>
-      <span className="mt-1 text-[10px] text-gray-500 text-center leading-tight">{label}</span>
     </div>
   );
 }
@@ -599,16 +612,15 @@ function MemorableImpressionChart({ answers }: { answers: AnswerStat[] }) {
           {data.map((item, idx) => (
             <div
               key={idx}
-              className="flex items-center gap-2 rounded-xl bg-gray-50/80 p-2 transition-all duration-200 hover:bg-gray-50 md:p-3 md:gap-3"
+              className="flex items-center gap-2.5 rounded-xl bg-gray-50/80 px-3 py-2.5 transition-all duration-200 hover:bg-gray-50 md:px-4 md:py-3"
             >
               <CircularPercentage
                 percentage={item.percentage}
                 color={IMPRESSION_COLORS[idx % IMPRESSION_COLORS.length]}
-                label=""
               />
               <div className="min-w-0">
-                <div className="text-[10px] font-medium text-gray-700 leading-tight md:text-xs">{item.name}</div>
-                <div className="mt-0.5 text-[9px] text-gray-400 md:text-[10px]">{item.value} suara</div>
+                <div className="text-[11px] font-medium text-gray-700 leading-tight md:text-sm">{item.name}</div>
+                <div className="mt-0.5 text-[10px] text-gray-400">{item.value} suara</div>
               </div>
             </div>
           ))}
@@ -619,6 +631,11 @@ function MemorableImpressionChart({ answers }: { answers: AnswerStat[] }) {
 }
 
 // ─── 7. Crew Impression (Horizontal Bar) ──────────────────────────────
+function formatPercentage(pct: number, count: number): string {
+  if (pct === 0 && count > 0) return "<1%";
+  return `${pct}%`;
+}
+
 function CrewImpressionChart({ answers }: { answers: AnswerStat[] }) {
   const data = chartData(answers);
 
@@ -630,13 +647,13 @@ function CrewImpressionChart({ answers }: { answers: AnswerStat[] }) {
     );
   }
 
-  const maxValue = Math.max(...data.map((d) => d.value));
-
   return (
     <div className="space-y-3 md:space-y-4">
       {data.map((item, idx) => {
         const color = CREW_COLORS[idx % CREW_COLORS.length];
-        const barWidth = maxValue > 0 ? (item.value / maxValue) * 100 : 0;
+        // Bar width matches the actual percentage value
+        const barWidth = Math.max(item.percentage, item.value > 0 ? 1 : 0);
+        const pctLabel = formatPercentage(item.percentage, item.value);
 
         return (
           <div key={idx} className="group">
@@ -649,11 +666,11 @@ function CrewImpressionChart({ answers }: { answers: AnswerStat[] }) {
                 <span className="text-xs font-medium text-gray-700 truncate md:text-sm">{item.name}</span>
               </div>
               <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
-                <span className="text-xs font-bold text-gray-900 md:text-sm">{item.percentage}%</span>
+                <span className="text-xs font-bold text-gray-900 md:text-sm">{pctLabel}</span>
                 <span className="text-[9px] text-gray-400 md:text-xs">({item.value})</span>
               </div>
             </div>
-            {/* Progress bar */}
+            {/* Progress bar — width reflects actual % */}
             <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100 md:h-3">
               <div
                 className="h-full rounded-full transition-all duration-700 ease-out group-hover:opacity-80"
@@ -845,118 +862,152 @@ function SummaryCards({ report }: { report: SurveyReport }) {
             <p className="text-[10px] text-gray-500 md:text-xs">Total Region</p>
           </div>
         </div>
-      </div>          {/* Date Range */}
-          <div className="group relative overflow-hidden rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-100 transition-all duration-300 hover:shadow-md md:p-5">
-            <div className="absolute -right-3 -top-3 h-16 w-16 rounded-full bg-purple-50 opacity-50 transition-all duration-300 group-hover:scale-125" />
-            <div className="relative flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 md:h-12 md:w-12">
-                <Clock className="h-5 w-5 text-purple-600 md:h-6 md:w-6" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Periode</p>
-                <p className="text-[10px] font-medium text-gray-900 leading-tight md:text-xs">
-                  {formatDate(report.startDate)} — {formatDate(report.endDate)}
-                </p>
-              </div>
-            </div>
+      </div>
+
+      {/* Date Range */}
+      <div className="group relative overflow-hidden rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-100 transition-all duration-300 hover:shadow-md md:p-5">
+        <div className="absolute -right-3 -top-3 h-16 w-16 rounded-full bg-purple-50 opacity-50 transition-all duration-300 group-hover:scale-125" />
+        <div className="relative flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 md:h-12 md:w-12">
+            <Clock className="h-5 w-5 text-purple-600 md:h-6 md:w-6" />
           </div>
+          <div>
+            <p className="text-xs text-gray-500">Periode</p>
+            <p className="text-[10px] font-medium text-gray-900 leading-tight md:text-xs">
+              {formatDate(report.startDate)} — {formatDate(report.endDate)}
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// FILTER BAR
+// INFO HEADER — professional metadata layout
+// ═══════════════════════════════════════════════════════════════════════
+function InfoHeader({
+  selectedRegionId,
+  selectedVenueName,
+  dateRange,
+  regions,
+}: {
+  selectedRegionId: string;
+  selectedVenueName: string;
+  dateRange: DateRange;
+  regions: { id: string; name: string }[] | undefined;
+}) {
+  const regionLabel = selectedRegionId
+    ? regions?.find((r) => r.id === selectedRegionId)?.name || selectedRegionId
+    : "All Region";
+
+  const venueLabel = selectedVenueName || "All Venue";
+
+  const periodLabel = dateRange.from
+    ? `${formatShortDate(dateRange.from)}${dateRange.to ? ` - ${formatShortDate(dateRange.to)}` : ""}`
+    : "Seluruh periode data";
+
+  return (
+    <div className="rounded-xl bg-white px-5 py-3.5 shadow-sm ring-1 ring-gray-100 md:px-6 md:py-4">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        {/* Region */}
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Region :</span>
+          <span className="break-words whitespace-normal text-xs font-medium leading-[1.4] text-gray-700">{regionLabel}</span>
+        </div>
+
+        {/* Periode */}
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Periode :</span>
+          <span className="break-words whitespace-normal text-xs font-medium leading-[1.4] text-gray-700">{periodLabel}</span>
+        </div>
+
+        {/* Venue — full width on all devices */}
+        <div className="flex flex-col gap-0.5 md:col-span-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Venue :</span>
+          <span className="break-words whitespace-normal text-xs font-medium leading-[1.4] text-gray-700">{venueLabel}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// FILTER BAR — REDESIGNED
 // ═══════════════════════════════════════════════════════════════════════
 function FilterBar({
-  events,
+  venues,
   regions,
-  selectedEventId,
+  selectedVenueId,
   selectedRegionId,
-  startDate,
-  endDate,
-  onEventChange,
+  dateRange,
+  onVenueChange,
   onRegionChange,
-  onStartDateChange,
-  onEndDateChange,
-  canViewRegionReport,
+  onDateRangeChange,
 }: {
-  events: { id: string; venueName: string }[] | undefined;
+  venues: { id: string; venueName: string; regionId: string }[];
   regions: { id: string; name: string }[] | undefined;
-  selectedEventId: string;
+  selectedVenueId: string;
   selectedRegionId: string;
-  startDate: string;
-  endDate: string;
-  onEventChange: (val: string) => void;
+  dateRange: DateRange;
+  onVenueChange: (val: string) => void;
   onRegionChange: (val: string) => void;
-  onStartDateChange: (val: string) => void;
-  onEndDateChange: (val: string) => void;
-  canViewRegionReport: boolean;
+  onDateRangeChange: (range: DateRange) => void;
 }) {
+  // Filter venues by selected region
+  const filteredVenues = selectedRegionId
+    ? venues.filter((v) => v.regionId === selectedRegionId)
+    : venues;
+
   return (
     <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-100 md:p-5">
       <div className="mb-3 flex items-center gap-2">
         <Filter className="h-4 w-4 text-gray-400" />
         <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Filter Data</span>
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Event */}
-        <div>
-          <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-gray-400">
-            Event
-          </label>
-          <select
-            value={selectedEventId}
-            onChange={(e) => onEventChange(e.target.value)}
-            className="h-10 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm text-gray-700 outline-none transition-colors focus:border-sgm-red focus:bg-white focus:ring-1 focus:ring-sgm-red/20"
-          >
-            <option value="">Semua Event</option>
-            {events?.map((ev) => (
-              <option key={ev.id} value={ev.id}>{ev.venueName}</option>
-            ))}
-          </select>
+
+      {/* Unified layout: same on ALL devices */}
+      <div className="space-y-3">
+        {/* Row 1: Region | Venue — 2 columns always */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Region */}
+          <div>
+            <label className="mb-1.5 block text-[11px] font-medium text-gray-500">Region</label>
+            <select
+              value={selectedRegionId}
+              onChange={(e) => onRegionChange(e.target.value)}
+              className="h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-700 shadow-sm outline-none transition-all hover:border-gray-300 focus:border-sgm-red focus:ring-2 focus:ring-sgm-red/20 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%239CA3AF%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px] bg-[right_12px_center] bg-no-repeat pr-10"
+            >
+              <option value="">All Region</option>
+              {regions?.map((r) => (
+                <option key={r.id} value={r.id}>{r.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Venue */}
+          <div>
+            <label className="mb-1.5 block text-[11px] font-medium text-gray-500">Venue</label>
+            <select
+              value={selectedVenueId}
+              onChange={(e) => onVenueChange(e.target.value)}
+              className="h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-700 shadow-sm outline-none transition-all hover:border-gray-300 focus:border-sgm-red focus:ring-2 focus:ring-sgm-red/20 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%239CA3AF%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px] bg-[right_12px_center] bg-no-repeat pr-10"
+            >
+              <option value="">Semua Venue</option>
+              {filteredVenues.map((v) => (
+                <option key={v.id} value={v.id}>{v.venueName}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        {/* Region */}
+        {/* Row 2: Periode — full width */}
         <div>
-          <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-gray-400">
-            Region
-          </label>
-          <select
-            value={selectedRegionId}
-            onChange={(e) => onRegionChange(e.target.value)}
-            className="h-10 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm text-gray-700 outline-none transition-colors focus:border-sgm-red focus:bg-white focus:ring-1 focus:ring-sgm-red/20 disabled:opacity-50"
-            disabled={!!selectedEventId}
-          >
-            <option value="">Semua Region</option>
-            {regions?.map((r) => (
-              <option key={r.id} value={r.id}>{r.name}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Start Date */}
-        <div>
-          <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-gray-400">
-            Dari Tanggal
-          </label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => onStartDateChange(e.target.value)}
-            className="h-10 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm text-gray-700 outline-none transition-colors focus:border-sgm-red focus:bg-white focus:ring-1 focus:ring-sgm-red/20"
-          />
-        </div>
-
-        {/* End Date */}
-        <div>
-          <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-gray-400">
-            Sampai Tanggal
-          </label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => onEndDateChange(e.target.value)}
-            className="h-10 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm text-gray-700 outline-none transition-colors focus:border-sgm-red focus:bg-white focus:ring-1 focus:ring-sgm-red/20"
+          <label className="mb-1.5 block text-[11px] font-medium text-gray-500">Periode</label>
+          <DateRangePicker
+            value={dateRange}
+            onChange={onDateRangeChange}
+            placeholder="Pilih Periode"
           />
         </div>
       </div>
@@ -979,22 +1030,22 @@ function VizSection({
   children: React.ReactNode;
 }) {
   return (
-    <div className="group flex h-full flex-col overflow-hidden rounded-2xl bg-white p-3 shadow-sm ring-1 ring-gray-100 transition-all duration-300 hover:shadow-md md:p-5">
+    <div className="overflow-hidden rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 transition-all duration-300 hover:shadow-md">
       {/* Section header */}
-      <div className="mb-3 flex items-start gap-2.5 md:mb-4 md:gap-3">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-sgm-red-light text-xs font-bold text-sgm-red md:h-8 md:w-8 md:text-sm">
+      <div className="mb-4 flex items-start gap-3 md:mb-5">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sgm-red-light text-sm font-bold text-sgm-red">
           {number}
         </div>
         <div className="min-w-0">
-          <h3 className="text-sm font-bold text-gray-900 leading-snug line-clamp-2 md:text-base">{title}</h3>
+          <h3 className="text-base font-bold text-gray-900 leading-snug md:text-lg">{title}</h3>
           {subtitle && (
-            <p className="mt-0.5 text-[10px] text-gray-500 md:text-xs">{subtitle}</p>
+            <p className="mt-0.5 text-xs text-gray-500">{subtitle}</p>
           )}
         </div>
       </div>
 
-      {/* Content — grow to fill remaining space in flex container */}
-      <div className="relative flex-1">
+      {/* Content — full width chart area */}
+      <div className="w-full">
         {children}
       </div>
     </div>
@@ -1038,17 +1089,20 @@ export default function SurveyReportPage() {
   const { data: eventsData } = useEvents({ limit: 100, enabled: canReadSurvey });
 
   // Filters
-  const [selectedEventId, setSelectedEventId] = useState("");
   const [selectedRegionId, setSelectedRegionId] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [selectedVenueId, setSelectedVenueId] = useState("");
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: undefined,
+    to: undefined,
+  });
 
+  // Derive API params from UI state
   const queryParams = useMemo(() => ({
-    eventId: selectedEventId || undefined,
+    eventId: selectedVenueId || undefined,
     regionId: selectedRegionId || undefined,
-    startDate: startDate || undefined,
-    endDate: endDate || undefined,
-  }), [selectedEventId, selectedRegionId, startDate, endDate]);
+    startDate: dateRange.from ? toISODateString(dateRange.from) : undefined,
+    endDate: dateRange.to ? toISODateString(dateRange.to) : undefined,
+  }), [selectedVenueId, selectedRegionId, dateRange]);
 
   const { data: report, isLoading, isError, refetch } = useSurveyReport(queryParams);
 
@@ -1059,15 +1113,15 @@ export default function SurveyReportPage() {
   const canGenerateAllAi = canReadSurveyAll;
 
   const { data: eventAiAnalysis, isLoading: isEventAiLoading } = useEventAiAnalysis(
-    selectedEventId || undefined,
-    { enabled: hasAiAccess && !!selectedEventId && !selectedRegionId }
+    selectedVenueId || undefined,
+    { enabled: hasAiAccess && !!selectedVenueId && !selectedRegionId }
   );
   const { data: regionAiAnalysis, isLoading: isRegionAiLoading } = useRegionAiAnalysis(
     selectedRegionId || undefined,
-    { enabled: hasAiAccess && !!selectedRegionId && !selectedEventId }
+    { enabled: hasAiAccess && !!selectedRegionId && !selectedVenueId }
   );
   const { data: allAiAnalysis, isLoading: isAllAiLoading } = useAllAiAnalysis({
-    enabled: hasAiAccess && !selectedEventId && !selectedRegionId && canGenerateAllAi
+    enabled: hasAiAccess && !selectedVenueId && !selectedRegionId && canGenerateAllAi
   });
 
   const aiAnalysis = eventAiAnalysis ?? regionAiAnalysis ?? allAiAnalysis;
@@ -1079,8 +1133,8 @@ export default function SurveyReportPage() {
   const isGeneratingAi = generateEventAi.isPending || generateRegionAi.isPending || generateAllAi.isPending;
 
   const handleGenerateAi = () => {
-    if (selectedEventId) {
-      generateEventAi.mutate(selectedEventId);
+    if (selectedVenueId) {
+      generateEventAi.mutate(selectedVenueId);
     } else if (selectedRegionId) {
       generateRegionAi.mutate(selectedRegionId);
     } else {
@@ -1088,17 +1142,22 @@ export default function SurveyReportPage() {
     }
   };
 
-  const handleEventChange = (val: string) => {
-    setSelectedEventId(val);
-    setSelectedRegionId("");
-  };
-
   const handleRegionChange = (val: string) => {
     setSelectedRegionId(val);
-    setSelectedEventId("");
+    // Clear venue when region changes
+    setSelectedVenueId("");
+  };
+
+  const handleVenueChange = (val: string) => {
+    setSelectedVenueId(val);
   };
 
   const canViewRegionReport = canReadSurveyRegion || canReadSurveyAll;
+
+  // Find selected venue name for info header
+  const venues = eventsData?.items || [];
+  const selectedVenue = venues.find((v) => v.id === selectedVenueId);
+  const selectedVenueName = selectedVenue?.venueName || "";
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -1143,30 +1202,17 @@ export default function SurveyReportPage() {
           Kembali ke Survey
         </button>
 
-        {/* Page title */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">
-            Survey Results Infographics
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Visualisasi data hasil survey event SGM — mudah dibaca, mudah dipahami
-          </p>
-        </div>
-
-        {/* Filters */}
+        {/* Filters — now at the top */}
         <div className="mb-6">
           <FilterBar
-            events={eventsData?.items}
+            venues={venues}
             regions={regions}
-            selectedEventId={selectedEventId}
+            selectedVenueId={selectedVenueId}
             selectedRegionId={selectedRegionId}
-            startDate={startDate}
-            endDate={endDate}
-            onEventChange={handleEventChange}
+            dateRange={dateRange}
+            onVenueChange={handleVenueChange}
             onRegionChange={handleRegionChange}
-            onStartDateChange={setStartDate}
-            onEndDateChange={setEndDate}
-            canViewRegionReport={canViewRegionReport}
+            onDateRangeChange={setDateRange}
           />
         </div>
 
@@ -1196,9 +1242,24 @@ export default function SurveyReportPage() {
             {/* Summary Statistics */}
             <SummaryCards report={report} />
 
+            {/* Survey Results Infographics Header — above section 01 */}
+            <div className="mt-6 mb-6 md:mt-8 md:mb-8">
+              <h1 className="mb-6 text-3xl font-bold text-gray-900 md:text-4xl">
+                Survey Results Infographics
+              </h1>
+
+              {/* Info Header (Region, Venue, Period) */}
+              <InfoHeader
+                selectedRegionId={selectedRegionId}
+                selectedVenueName={selectedVenueName}
+                dateRange={dateRange}
+                regions={regions}
+              />
+            </div>
+
             {/* ── Visualisasi 1: Profesi Bunda — full width ── */}
             {professionQuestion && (
-              <div className="mt-4 md:mt-6">
+              <div className="mt-6 md:mt-8">
                 <VizSection number="01" title="Profesi Bunda" subtitle="Distribusi profesi responden">
                   <ProfessionCards answers={professionQuestion.answers} />
                 </VizSection>
@@ -1207,7 +1268,7 @@ export default function SurveyReportPage() {
 
             {/* ── Visualisasi 2: Alasan Membeli — full width ── */}
             {buyingReasonQuestion && (
-              <div className="mt-4 md:mt-6">
+              <div className="mt-6 md:mt-8">
                 <VizSection
                   number="02"
                   title="Apa yang membuat Bunda membeli produk SGM Eksplor?"
@@ -1221,10 +1282,9 @@ export default function SurveyReportPage() {
               </div>
             )}
 
-            {/* ── Visualisasi 3–7: 2-column grid ── */}
-            <div className="mt-4 grid grid-cols-2 gap-3 md:mt-6 md:gap-4">
-              {/* ── Visualisasi 3: Alasan Tidak Membeli ── */}
-              {notBuyingReasonQuestion && (
+            {/* ── Visualisasi 3: Alasan Tidak Membeli — full width ── */}
+            {notBuyingReasonQuestion && (
+              <div className="mt-6 md:mt-8">
                 <VizSection
                   number="03"
                   title="Jika tidak membeli, apa alasan Bunda?"
@@ -1235,10 +1295,12 @@ export default function SurveyReportPage() {
                     colors={NOT_BUYING_COLORS}
                   />
                 </VizSection>
-              )}
+              </div>
+            )}
 
-              {/* ── Visualisasi 4: Paket yang Dibeli ── */}
-              {packageQuestion && (
+            {/* ── Visualisasi 4: Paket yang Dibeli — full width ── */}
+            {packageQuestion && (
+              <div className="mt-6 md:mt-8">
                 <VizSection
                   number="04"
                   title="Paket yang Dibeli"
@@ -1249,10 +1311,12 @@ export default function SurveyReportPage() {
                     colors={PACKAGE_COLORS}
                   />
                 </VizSection>
-              )}
+              </div>
+            )}
 
-              {/* ── Visualisasi 5: Aktivitas Favorit ── */}
-              {favoriteActivityQuestion && (
+            {/* ── Visualisasi 5: Aktivitas Favorit — full width ── */}
+            {favoriteActivityQuestion && (
+              <div className="mt-6 md:mt-8">
                 <VizSection
                   number="05"
                   title="Aktivitas yang Paling Disukai"
@@ -1260,10 +1324,12 @@ export default function SurveyReportPage() {
                 >
                   <RadialProgressChartCard answers={favoriteActivityQuestion.answers} />
                 </VizSection>
-              )}
+              </div>
+            )}
 
-              {/* ── Visualisasi 6: Kesan Paling Diingat ── */}
-              {memorableImpressionQuestion && (
+            {/* ── Visualisasi 6: Kesan Paling Diingat — full width ── */}
+            {memorableImpressionQuestion && (
+              <div className="mt-6 md:mt-8">
                 <VizSection
                   number="06"
                   title="Kesan yang Paling Diingat dari Event SGM"
@@ -1271,10 +1337,12 @@ export default function SurveyReportPage() {
                 >
                   <MemorableImpressionChart answers={memorableImpressionQuestion.answers} />
                 </VizSection>
-              )}
+              </div>
+            )}
 
-              {/* ── Visualisasi 7: Penilaian Kru Event ── */}
-              {crewImpressionQuestion && (
+            {/* ── Visualisasi 7: Penilaian Kru Event — full width ── */}
+            {crewImpressionQuestion && (
+              <div className="mt-6 md:mt-8">
                 <VizSection
                   number="07"
                   title="Penilaian terhadap Kru Event"
@@ -1282,12 +1350,12 @@ export default function SurveyReportPage() {
                 >
                   <CrewImpressionChart answers={crewImpressionQuestion.answers} />
                 </VizSection>
-              )}
-            </div>
+              </div>
+            )}
 
-            {/* ── AI Insight — full width below the 2-col grid ── */}
+            {/* ── AI Insight — full width ── */}
             {hasAiAccess && (
-              <div className="mt-4 md:mt-6">
+              <div className="mt-6 md:mt-8">
                 <AiInsightCard
                   aiAnalysis={aiAnalysis}
                   isAiLoading={isAiLoading}
