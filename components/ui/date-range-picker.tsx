@@ -155,17 +155,26 @@ export function DateRangePicker({
           {displayText || placeholder}
         </span>
         {from && (
-          <button
-            type="button"
+          <span
+            role="button"
+            tabIndex={0}
             onClick={(e) => {
               e.stopPropagation();
               onChange({ from: undefined, to: undefined });
               setSelecting("start");
             }}
-            className="flex h-5 w-5 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                onChange({ from: undefined, to: undefined });
+                setSelecting("start");
+              }
+            }}
+            className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
           >
             &times;
-          </button>
+          </span>
         )}
       </button>
 

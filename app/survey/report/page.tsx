@@ -704,112 +704,145 @@ function AiInsightCard({
   handleGenerateAi: () => void;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-pink-200/60 bg-gradient-to-br from-pink-50 via-white to-rose-50 p-6 shadow-sm md:p-8">
-      {/* Decorative background elements */}
-      <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-gradient-to-br from-pink-200/20 to-rose-200/20 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-gradient-to-tr from-purple-200/20 to-pink-200/20 blur-3xl" />
-
-      {/* Header */}
-      <div className="relative mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 shadow-sm">
-            <Brain className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">✨ AI Survey Insight</h2>
-            <p className="text-xs text-gray-500">Analisis cerdas berbasis data survey</p>
-          </div>
-        </div>
-        {canGenerateAi && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleGenerateAi}
-            disabled={isGeneratingAi}
-            className="self-start border-pink-200 bg-white/80 text-pink-700 hover:bg-pink-100 hover:text-pink-800"
-          >
-            {isGeneratingAi ? (
-              <>
-                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                Menganalisis...
-              </>
-            ) : aiAnalysis ? (
-              <>
-                <RefreshCw className="mr-1.5 h-4 w-4" />
-                Refresh Analysis
-              </>
-            ) : (
-              <>
-                <Sparkles className="mr-1.5 h-4 w-4" />
-                Generate AI Analysis
-              </>
-            )}
-          </Button>
-        )}
-      </div>
-
-      {/* Content */}
+    <div className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm md:p-8">
+      {/* ── Loading State ── */}
       {isAiLoading || isGeneratingAi ? (
-        <div className="relative space-y-4">
-          <div className="h-3 w-full animate-pulse rounded-full bg-pink-100" />
-          <div className="h-3 w-5/6 animate-pulse rounded-full bg-pink-100" />
-          <div className="h-3 w-4/6 animate-pulse rounded-full bg-pink-100" />
-          <div className="mt-4 space-y-2">
-            <div className="h-3 w-2/6 animate-pulse rounded-full bg-pink-100" />
-            <div className="h-3 w-3/6 animate-pulse rounded-full bg-pink-100" />
-            <div className="h-3 w-3/6 animate-pulse rounded-full bg-pink-100" />
-          </div>
-        </div>
-      ) : aiAnalysis ? (
-        <div className="relative space-y-6">
-          {/* Conclusion (stored in executiveSummary) */}
-          <div className="rounded-xl border border-pink-100 bg-white/80 p-4 backdrop-blur-sm md:p-5">
-            <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900">
-              <Sparkles className="h-4 w-4 text-pink-500" />
-              Kesimpulan
-            </h3>
-            <p className="text-sm leading-relaxed text-gray-700">
-              {aiAnalysis.executiveSummary}
-            </p>
-          </div>
-
-          {/* Key Insights */}
-          <div>
-            <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900">
-              <Lightbulb className="h-4 w-4 text-amber-500" />
-              5 Insight Utama
-            </h3>
+        <div className="space-y-5">
+          {/* Key Insights skeleton */}
+          <div className="space-y-3">
+            <div className="h-4 w-28 animate-pulse rounded bg-gray-200" />
             <div className="grid gap-2 sm:grid-cols-2">
-              {aiAnalysis.keyInsights.map((insight, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-start gap-2.5 rounded-lg border border-amber-100 bg-amber-50/50 px-3.5 py-2.5"
-                >
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-200 text-[10px] font-bold text-amber-800">
-                    {idx + 1}
-                  </span>
-                  <span className="text-sm text-gray-700">{insight}</span>
-                </div>
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-14 animate-pulse rounded-lg bg-gray-100" />
               ))}
             </div>
           </div>
-
-          {/* Timestamp */}
-          <div className="flex items-center gap-1.5 border-t border-pink-100 pt-4 text-xs text-gray-400">
-            <Clock className="h-3 w-3" />
-            Terakhir diperbarui: {formatDateTime(aiAnalysis.generatedAt)}
+          {/* Conclusion skeleton */}
+          <div className="space-y-3">
+            <div className="h-4 w-20 animate-pulse rounded bg-gray-200" />
+            <div className="h-24 animate-pulse rounded-xl bg-gray-100" />
           </div>
         </div>
-      ) : (
-        <div className="relative rounded-xl border border-dashed border-pink-200 bg-white/60 px-6 py-12 text-center backdrop-blur-sm">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-100 to-rose-100">
-            <Brain className="h-8 w-8 text-pink-400" />
+      ) : aiAnalysis ? (
+        <>
+          {/* ── Analysis Results ── */}
+          <div className="space-y-6">
+            {/* Key Insights */}
+            <div>
+              <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900">
+                <Lightbulb className="h-4 w-4 text-amber-500" />
+                4 Key Insight
+              </h3>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {aiAnalysis.keyInsights.map((insight, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-start gap-2.5 rounded-lg border border-amber-100 bg-amber-50/50 px-3.5 py-2.5"
+                  >
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-200 text-[10px] font-bold text-amber-800">
+                      {idx + 1}
+                    </span>
+                    <span className="text-sm text-gray-700">{insight}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Conclusion */}
+            <div className="rounded-xl border border-gray-100 bg-gray-50/50 p-4 md:p-5">
+              <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900">
+                <Sparkles className="h-4 w-4 text-pink-500" />
+                Kesimpulan
+              </h3>
+              <p className="text-sm leading-relaxed text-gray-700">
+                {aiAnalysis.executiveSummary}
+              </p>
+            </div>
+
+            {/* Timestamp */}
+            <div className="flex items-center gap-1.5 border-t border-gray-100 pt-4 text-xs text-gray-400">
+              <Clock className="h-3 w-3" />
+              Terakhir diperbarui: {formatDateTime(aiAnalysis.generatedAt)}
+            </div>
           </div>
-          <h3 className="text-base font-semibold text-gray-900">Analisis AI Belum Tersedia</h3>
+
+          {/* ── AI Info Section — placed ~32px below results ── */}
+          <div className="mt-8 rounded-xl border border-[#E5E7EB] bg-white p-5 shadow-sm md:p-6">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              {/* Icon + Text */}
+              <div className="flex items-start gap-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500 to-rose-500 shadow-sm">
+                  <Brain className="h-5 w-5 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-xl font-bold text-gray-900">
+                    AI Survey Insight
+                  </h3>
+                  <p className="mt-1 text-[11px] leading-5 text-gray-400">
+                    Analisis ini dibuat secara otomatis menggunakan Artificial Intelligence (AI)
+                    berdasarkan data survey yang dipilih.
+                  </p>
+                </div>
+              </div>
+              {/* Refresh Button */}
+              {canGenerateAi && (
+                <Button
+                  variant="outline"
+                  size="default"
+                  onClick={handleGenerateAi}
+                  disabled={isGeneratingAi}
+                  className="w-full shrink-0 border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 md:w-auto"
+                >
+                  {isGeneratingAi ? (
+                    <>
+                      <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                      Menganalisis...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-1.5 h-4 w-4" />
+                      Refresh Analysis
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
+        </>
+      ) : (
+        /* ── Empty State ── */
+        <div className="px-6 py-16 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-100">
+            <Brain className="h-8 w-8 text-gray-300" />
+          </div>
+          <h3 className="text-base font-semibold text-gray-900">
+            Analisis AI Belum Tersedia
+          </h3>
           <p className="mx-auto mt-2 max-w-md text-sm text-gray-500">
-            Klik tombol &quot;Generate AI Analysis&quot; untuk mendapatkan insight cerdas
-            berdasarkan data survey yang terkumpul.
+            Klik tombol di bawah untuk mendapatkan insight cerdas berdasarkan data survey
+            yang terkumpul.
           </p>
+          {canGenerateAi && (
+            <Button
+              variant="default"
+              size="default"
+              onClick={handleGenerateAi}
+              disabled={isGeneratingAi}
+              className="mt-5"
+            >
+              {isGeneratingAi ? (
+                <>
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  Menganalisis...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-1.5 h-4 w-4" />
+                  Generate AI Analysis
+                </>
+              )}
+            </Button>
+          )}
         </div>
       )}
     </div>
@@ -872,7 +905,7 @@ function SummaryCards({ report }: { report: SurveyReport }) {
             <Clock className="h-5 w-5 text-purple-600 md:h-6 md:w-6" />
           </div>
           <div>
-            <p className="text-xs text-gray-500">Periode</p>
+            <p className="text-xs text-gray-500">Period</p>
             <p className="text-[10px] font-medium text-gray-900 leading-tight md:text-xs">
               {formatDate(report.startDate)} — {formatDate(report.endDate)}
             </p>
@@ -905,27 +938,29 @@ function InfoHeader({
 
   const periodLabel = dateRange.from
     ? `${formatShortDate(dateRange.from)}${dateRange.to ? ` - ${formatShortDate(dateRange.to)}` : ""}`
-    : "Seluruh periode data";
+    : "All Period";
 
   return (
     <div className="rounded-xl bg-white px-5 py-3.5 shadow-sm ring-1 ring-gray-100 md:px-6 md:py-4">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        {/* Region */}
-        <div className="flex flex-col gap-0.5">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Region :</span>
-          <span className="break-words whitespace-normal text-xs font-medium leading-[1.4] text-gray-700">{regionLabel}</span>
+      <div className="space-y-3">
+        {/* Row 1: Region (kiri) + Period (kanan) — flex justify-between */}
+        <div className="flex justify-between items-start w-full">
+          {/* Region */}
+          <div className="flex flex-col gap-0.5 text-left">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Region :</span>
+            <span className="text-[13px] font-medium text-[#111827] leading-[1.4] break-words whitespace-normal">{regionLabel}</span>
+          </div>
+          {/* Period */}
+          <div className="flex flex-col gap-0.5 text-right">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Period :</span>
+            <span className="text-[13px] font-medium text-[#111827] leading-[1.4] break-words whitespace-normal">{periodLabel}</span>
+          </div>
         </div>
 
-        {/* Periode */}
-        <div className="flex flex-col gap-0.5">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Periode :</span>
-          <span className="break-words whitespace-normal text-xs font-medium leading-[1.4] text-gray-700">{periodLabel}</span>
-        </div>
-
-        {/* Venue — full width on all devices */}
-        <div className="flex flex-col gap-0.5 md:col-span-2">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Venue :</span>
-          <span className="break-words whitespace-normal text-xs font-medium leading-[1.4] text-gray-700">{venueLabel}</span>
+        {/* Row 2: Venue — full width */}
+        <div className="flex flex-col gap-0.5 text-left">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Venue :</span>
+          <span className="text-[13px] font-medium text-[#111827] leading-[1.4] break-words whitespace-normal">{venueLabel}</span>
         </div>
       </div>
     </div>
@@ -993,7 +1028,7 @@ function FilterBar({
               onChange={(e) => onVenueChange(e.target.value)}
               className="h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-700 shadow-sm outline-none transition-all hover:border-gray-300 focus:border-sgm-red focus:ring-2 focus:ring-sgm-red/20 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%239CA3AF%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px] bg-[right_12px_center] bg-no-repeat pr-10"
             >
-              <option value="">Semua Venue</option>
+              <option value="">All Venue</option>
               {filteredVenues.map((v) => (
                 <option key={v.id} value={v.id}>{v.venueName}</option>
               ))}
@@ -1001,13 +1036,13 @@ function FilterBar({
           </div>
         </div>
 
-        {/* Row 2: Periode — full width */}
+        {/* Row 2: Period — full width */}
         <div>
-          <label className="mb-1.5 block text-[11px] font-medium text-gray-500">Periode</label>
+          <label className="mb-1.5 block text-[11px] font-medium text-gray-500">Period</label>
           <DateRangePicker
             value={dateRange}
             onChange={onDateRangeChange}
-            placeholder="Pilih Periode"
+            placeholder="All Period"
           />
         </div>
       </div>
@@ -1243,18 +1278,36 @@ export default function SurveyReportPage() {
             <SummaryCards report={report} />
 
             {/* Survey Results Infographics Header — above section 01 */}
-            <div className="mt-6 mb-6 md:mt-8 md:mb-8">
-              <h1 className="mb-6 text-3xl font-bold text-gray-900 md:text-4xl">
-                Survey Results Infographics
-              </h1>
+            <div className="mt-6 mb-6">
+              {/* Logo + Title — stacked vertically, centered */}
+              <div className="flex flex-col items-center justify-center">
+                {/* SGM Logo — with hover effects & entrance animation */}
+                <div className="group mb-1.5">
+                  <div className="relative animate-[fadeInUp_0.6s_ease-out] rounded-2xl p-1 transition-all duration-500 ease-out group-hover:bg-sgm-red-light/40 group-hover:shadow-lg">
+                    <img
+                      src="/SGM_logo.svg"
+                      alt="SGM"
+                      className="h-10 w-auto transition-all duration-500 ease-out md:h-14 hover:scale-110 hover:brightness-110 hover:drop-shadow-xl active:scale-95"
+                    />
+                    {/* Glow ring on hover */}
+                    <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-transparent transition-all duration-500 ease-out group-hover:ring-sgm-red/20 group-hover:ring-2" />
+                  </div>
+                </div>
+
+                <h1 className="text-center text-[22px] font-extrabold text-[#111827] leading-[1.1] whitespace-nowrap w-fit mx-auto sm:text-2xl md:text-[40px] lg:text-5xl">
+                  Survey Results Infographics
+                </h1>
+              </div>
 
               {/* Info Header (Region, Venue, Period) */}
-              <InfoHeader
-                selectedRegionId={selectedRegionId}
-                selectedVenueName={selectedVenueName}
-                dateRange={dateRange}
-                regions={regions}
-              />
+              <div className="mt-5 text-left">
+                <InfoHeader
+                  selectedRegionId={selectedRegionId}
+                  selectedVenueName={selectedVenueName}
+                  dateRange={dateRange}
+                  regions={regions}
+                />
+              </div>
             </div>
 
             {/* ── Visualisasi 1: Profesi Bunda — full width ── */}

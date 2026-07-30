@@ -112,8 +112,8 @@ function validateAiResponse(parsed: Record<string, unknown>): ValidationResult {
   if (!Array.isArray(keyInsights)) {
     errors.push("keyInsights must be an array");
   } else {
-    if (keyInsights.length !== 5) {
-      errors.push(`keyInsights must have exactly 5 items (got ${keyInsights.length})`);
+    if (keyInsights.length !== 4) {
+      errors.push(`keyInsights must have exactly 4 items (got ${keyInsights.length})`);
     }
     for (let i = 0; i < keyInsights.length; i++) {
       if (typeof keyInsights[i] !== "string") {
@@ -222,10 +222,10 @@ function buildPrompt(payload: SurveyAiAggregatePayload): string {
   return `
 Anda adalah seorang Senior Business Intelligence Analyst yang bertugas menganalisis hasil survey Event SGM Ruang Tumbuh Lebih.
 
-Tugas Anda adalah membuat analisis berdasarkan DATA NYATA yang diberikan. Jangan membuat asumsi atau menambahkan data yang tidak ada.
+Tugas Anda adalah menganalisis data survey berdasarkan DATA NYATA yang diberikan. Jangan membuat asumsi, opini, atau data yang tidak terdapat pada input.
 
 =========================
-INFORMASI UMUM
+INFORMASI SURVEY
 =========================
 
 Total Survey      : ${payload.totalSurveys}
@@ -262,61 +262,110 @@ ${fmt(payload.crewImpression)}
 TUGAS ANALISIS
 =========================
 
-Lakukan analisis terhadap seluruh data survey di atas.
+Analisis data survey di atas dan fokuskan pada:
 
-Analisis harus mampu menemukan:
-- Pola jawaban responden.
+- Profil mayoritas responden.
 - Tren pembelian.
-- Perilaku konsumen.
-- Aktivitas favorit selama event.
-- Faktor utama yang memengaruhi pembelian.
-- Persepsi konsumen terhadap event.
-- Persepsi konsumen terhadap kru (man power).
-- Peluang peningkatan kualitas event berikutnya.
+- Faktor utama yang memengaruhi keputusan membeli.
+- Faktor utama yang menyebabkan tidak membeli.
+- Aktivitas event yang paling disukai.
+- Persepsi responden terhadap event.
+- Peluang peningkatan event berikutnya.
 
-Jangan membuat asumsi yang tidak didukung oleh data.
+Gunakan hanya data yang tersedia.
+
+Jangan mengulang seluruh data menjadi narasi panjang.
+
+Pilih hanya temuan yang paling penting dan paling bernilai bagi client.
 
 =========================
-OUTPUT — FORMAT WAJIB
+FORMAT OUTPUT (WAJIB)
 =========================
 
-Balas HANYA dengan JSON valid. Ikuti format di bawah ini PERSIS.
+Balas HANYA dengan JSON valid.
 
-Jangan gunakan markdown.
-Jangan gunakan \`\`\`json.
-Jangan tambahkan kalimat pembuka atau penutup.
-Jangan berikan penjelasan apa pun di luar JSON.
+Jangan menggunakan markdown.
+Jangan menggunakan \`\`\`json.
+Jangan memberikan penjelasan di luar JSON.
+
+Format HARUS sama persis seperti berikut:
 
 {
   "keyInsights": [
-    "Insight 1 — berdasarkan data, 1-3 kalimat.",
-    "Insight 2 — berdasarkan data, 1-3 kalimat.",
-    "Insight 3 — berdasarkan data, 1-3 kalimat.",
-    "Insight 4 — berdasarkan data, 1-3 kalimat.",
-    "Insight 5 — berdasarkan data, 1-3 kalimat."
+    "Insight pertama",
+    "Insight kedua",
+    "Insight ketiga",
+    "Insight keempat"
   ],
-  "conclusion": "Kesimpulan analisis sepanjang 5-10 kalimat yang merangkum seluruh hasil survey."
+  "conclusion": "Kesimpulan hasil survey."
 }
 
 =========================
 ATURAN PENULISAN
 =========================
 
-1. Gunakan Bahasa Indonesia yang profesional, mudah dipahami, dan cocok ditampilkan langsung kepada client tanpa perlu diedit.
+1. Gunakan Bahasa Indonesia yang profesional, singkat, dan mudah dipahami oleh client.
 
-2. keyInsights: Tepat 5 poin, masing-masing 1-3 kalimat, berdasarkan data.
+2. Output HARUS dimulai dari keyInsights, kemudian diikuti conclusion.
 
-3. conclusion: 5-10 kalimat yang merangkum seluruh hasil survey.
-   - Jelaskan gambaran umum hasil survey.
-   - Sebutkan kecenderungan perilaku konsumen.
-   - Jelaskan faktor yang paling memengaruhi pembelian.
-   - Jelaskan aktivitas yang paling diminati.
-   - Jelaskan persepsi konsumen terhadap event dan kru.
-   - Tutup dengan rekomendasi profesional.
+3. keyInsights — ATURAN KHUSUS:
+- Tepat 4 Key Insight.
+- Setiap Key Insight maksimal 1 kalimat.
+- Panjang maksimal 25 kata per insight.
+- Sebutkan hanya 1 temuan utama pada setiap insight.
+- Hindari penjelasan, analisis panjang, atau rekomendasi.
+- Cukup tampilkan inti informasi beserta persentase terpenting jika diperlukan.
+- Jangan menggabungkan lebih dari dua topik dalam satu insight.
+- Gunakan bahasa yang singkat, padat, dan mudah dipindai oleh client.
 
-4. Jangan mengarang data atau persentase yang tidak terdapat pada input.
+Contoh Key Insight yang BAIK:
+✅ Mayoritas responden merupakan Ibu Rumah Tangga (47,6%), diikuti Wirausaha/UMKM (40,0%).
+✅ Paket 1 menjadi produk yang paling banyak dibeli dengan kontribusi 36,8%.
+✅ Hadiah dan gimmick acara menjadi faktor utama yang mendorong keputusan pembelian (37,6%).
+✅ Bouncy Castle menjadi aktivitas favorit dan memperkuat pengalaman positif selama event.
 
-5. Kembalikan HANYA JSON. Tanpa markdown. Tanpa \`\`\`. Tanpa teks lain.
+Contoh Key Insight yang TIDAK BOLEH:
+❌ Mayoritas responden berasal dari Ibu Rumah Tangga (47,6%) dan Wirausaha / UMKM (40,0%), sehingga audiens event didominasi oleh segmen keluarga dan pelaku usaha mandiri.
+❌ Tren pembelian cukup positif dengan Paket 1 sebagai pilihan tertinggi (36,8%), sementara responden yang tidak membeli mencapai 31,6%. Ini menunjukkan paket entry-level paling relevan, namun masih ada ruang besar untuk konversi pembelian.
+
+4. conclusion:
+- Panjang 5–7 kalimat.
+- Ringkas dan langsung ke inti.
+- Merangkum keseluruhan hasil survey.
+- Menjelaskan profil responden secara umum.
+- Menjelaskan tren pembelian.
+- Menjelaskan faktor utama pembelian atau hambatan pembelian.
+- Menjelaskan aktivitas atau pengalaman event yang paling menonjol.
+- Ditutup dengan SATU rekomendasi singkat untuk penyelenggaraan event berikutnya.
+
+5. Jangan mengulang angka atau persentase yang sudah disebutkan pada Key Insights, kecuali benar-benar diperlukan.
+
+6. Jangan membuat paragraf yang terlalu panjang.
+
+7. Jangan memberikan rekomendasi yang tidak didukung oleh data.
+
+8. Jika suatu kategori memiliki seluruh nilai 0 atau tidak memiliki data, jangan dianalisis dan jangan dipaksakan untuk diberi kesimpulan.
+
+9. Jangan menyebut nama enum, kode database, atau identifier seperti:
+- IBU_RUMAH_TANGGA
+- WIRAUSAHA_UMKM
+- MENDAPATKAN_HADIAH_GIMMICK
+- STORY_TELLING
+- PAKET_1
+
+Gunakan label yang natural dan mudah dipahami, misalnya:
+
+- Ibu Rumah Tangga
+- Wirausaha / UMKM
+- Profesional
+- Pekerja
+- Mendapatkan hadiah dan gimmick acara
+- Story Telling
+- Paket 1
+
+10. Seluruh hasil analisis harus siap ditampilkan langsung kepada client tanpa perlu diedit.
+
+11. Kembalikan HANYA JSON valid tanpa teks tambahan.
 `;
 }
 
