@@ -6,7 +6,7 @@ import type {
   SurveyQueryParams,
   SurveyReport,
 } from "@/types/survey";
-import type { SurveyAiAnalysis } from "@/types/survey-ai";
+import type { SurveyAiAnalysis, SurveyQuestionAiAnalysis } from "@/types/survey-ai";
 
 export const surveyApi = {
   async list(params: SurveyQueryParams = {}) {
@@ -69,6 +69,29 @@ export const surveyApi = {
   /** Generate AI analysis for all regions */
   async generateAllAiAnalysis(): Promise<SurveyAiAnalysis> {
     const res = await api.post<ApiResponse<SurveyAiAnalysis>>("/surveys/report/ai/all");
+    return res.data.data;
+  },
+
+  // ─── Per-question AI Analysis ──────────────────────────────────────────
+
+  /** Get cached per-question AI analyses for the given scope */
+  async getQuestionAiAnalyses(params: {
+    eventId?: string;
+    regionId?: string;
+    startDate?: string;
+    endDate?: string;
+  } = {}): Promise<SurveyQuestionAiAnalysis[]> {
+    const res = await api.get<ApiResponse<SurveyQuestionAiAnalysis[]>>("/surveys/report/ai/questions", { params });
+    return res.data.data;
+  },
+
+  /** Generate (or regenerate) per-question AI analyses for all questions */
+  async generateQuestionAiAnalyses(params: {
+    eventId?: string;
+    startDate?: string;
+    endDate?: string;
+  } = {}): Promise<SurveyQuestionAiAnalysis[]> {
+    const res = await api.post<ApiResponse<SurveyQuestionAiAnalysis[]>>("/surveys/report/ai/questions", null, { params });
     return res.data.data;
   },
 };

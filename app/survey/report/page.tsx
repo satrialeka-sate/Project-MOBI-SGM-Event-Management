@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import ErrorState from "@/components/ErrorState";
+import { VersionSwitcher } from "@/components/VersionSwitcher";
 import { usePermissions } from "@/hooks/use-permissions";
 import {
   useSurveyReport, useEventAiAnalysis, useRegionAiAnalysis,
@@ -1228,14 +1229,17 @@ export default function SurveyReportPage() {
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <AppHeader />
       <main className="mx-auto max-w-6xl px-4 py-6 md:py-10">
-        {/* Back button */}
-        <button
-          className="mb-4 flex items-center gap-1.5 text-sm text-gray-400 transition-colors hover:text-gray-600"
-          onClick={() => router.push("/survey")}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Kembali ke Survey
-        </button>
+        {/* Top bar: Back + Version Switcher */}
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <button
+            className="flex items-center gap-1.5 text-sm text-gray-400 transition-colors hover:text-gray-600 self-start"
+            onClick={() => router.push("/survey")}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Kembali ke Survey
+          </button>
+          <VersionSwitcher />
+        </div>
 
         {/* Filters — now at the top */}
         <div className="mb-6">

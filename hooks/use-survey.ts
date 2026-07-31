@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { surveyApi } from "@/lib/api/survey";
 import type { CreateSurveyInput, SurveyQueryParams } from "@/types/survey";
-import type { SurveyAiAnalysis } from "@/types/survey-ai";
+import type { SurveyAiAnalysis, SurveyQuestionAiAnalysis } from "@/types/survey-ai";
 import { toast } from "sonner";
 import { usePermissions } from "./use-permissions";
 
@@ -169,6 +169,45 @@ export function useGenerateRegionAiAnalysis() {
       const message = error instanceof AxiosError
         ? (error.response?.data?.message || "Gagal membuat analisis AI")
         : "Gagal membuat analisis AI";
+      toast.error(message);
+    },
+  });
+}
+
+/**
+ * Hook to fetch cached per-question AI analyses for the given scope.
+ */
+export function useQuestionAiAnalyses(
+  params: { eventId?: string; regionId?: string; startDate?: string; endDate?: string } = {},
+  options: { enabled?: boolean } = {}
+) {
+  const { canReadSurvey } = usePermissions();
+
+  return useQuery<SurveyQuestionAiAnalysis[]>({
+    queryKey: [AI_KEY, "questions", params],
+    queryFn: () => surveyApi.getQuestionAiAnalyses(params),
+    enabled: options.enabled !== false && !!canReadSurvey,
+  });
+}
+
+/**
+ * Hook to generate (or regenerate) per-question AI analyses for all questions.
+ */
+export function useGenerateQuestionAiAnalyses() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: { eventId?: string; startDate?: string; endDate?: string } = {}) =>
+      surveyApi.generateQuestionAiAnalyses(params),
+    onSuccess: () => {
+      // Invalidate all cached per-question analyses (any filter combination)
+      queryClient.invalidateQueries({ queryKey: [AI_KEY, "questions"] });
+      toast.success("Analisa AI per pertanyaan berhasil dibuat");
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof AxiosError
+        ? (error.response?.data?.message || "Gagal membuat analisa AI per pertanyaan")
+        : "Gagal membuat analisa AI per pertanyaan";
       toast.error(message);
     },
   });

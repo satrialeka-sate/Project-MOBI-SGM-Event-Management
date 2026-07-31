@@ -369,3 +369,21 @@ model SurveyAiAnalysis {
   @@index([scope, eventId, regionId])
   @@map("survey_ai_analyses")
 }
+
+// Per-question AI qualitative analysis — one row per survey question
+model SurveyQuestionAiAnalysis {
+  id             String   @id @default(cuid())
+  scope          String   // EVENT | REGION | ALL
+  eventId        String?
+  regionId       String?
+  questionKey    String
+  analysis       String
+  periodStart    DateTime?
+  periodEnd      DateTime?
+  generatedAt    DateTime @default(now())
+  generatedBy    String?
+
+  @@index([scope, eventId, questionKey])
+  @@index([scope, regionId, questionKey])
+  @@map("survey_question_ai_analyses")
+}

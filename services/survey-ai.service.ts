@@ -1,8 +1,16 @@
 import OpenAI from "openai";
 import { surveyAiRepository } from "@/repositories/survey-ai.repository";
+import { surveyQuestionAiRepository } from "@/repositories/survey-question-ai.repository";
 import { surveyService } from "@/services/survey.service";
+import { prisma } from "@/lib/prisma";
+import { excludeLegacyRegionsFilter } from "@/constants/regions";
 import type { ActorContext } from "@/types/auth";
-import type { SurveyAiResult, SurveyAiAggregatePayload, SurveyAiAnalysis } from "@/types/survey-ai";
+import type {
+  SurveyAiResult,
+  SurveyAiAggregatePayload,
+  SurveyAiAnalysis,
+  SurveyQuestionAiAnalysis,
+} from "@/types/survey-ai";
 import { AppError } from "@/lib/errors";
 import {
   getProfessionLabel,
@@ -93,7 +101,7 @@ function safeParse(raw: string): Record<string, unknown> {
   } catch (err) {
     // Re-throw with more context
     const syntaxErr = err instanceof SyntaxError ? err : new SyntaxError(String(err));
-    (syntaxErr as any).rawAttempt = jsonString;
+    (syntaxErr as SyntaxError & { rawAttempt?: string }).rawAttempt = jsonString;
     throw syntaxErr;
   }
 }
@@ -369,8 +377,12 @@ Gunakan label yang natural dan mudah dipahami, misalnya:
 `;
 }
 
-// ─── Call OpenAI with retry ─────────────────────────────────────────────
-async function callOpenAI(prompt: string): Promise<SurveyAiResult> {
+// ─── Generic OpenAI JSON caller with retry ────────────────────────────────
+async function callOpenAIJson<T>(
+  prompt: string,
+  validate: (parsed: Record<string, unknown>) => ValidationResult,
+  transform: (parsed: Record<string, unknown>) => T
+): Promise<T> {
   const startTime = Date.now();
   let lastError: Error | null = null;
 
@@ -426,7 +438,9 @@ async function callOpenAI(prompt: string): Promise<SurveyAiResult> {
           attempt,
           error: errMsg,
           rawResponse: content,
-          extractedJson: parseErr instanceof SyntaxError ? (parseErr as any).rawAttempt : null,
+          extractedJson: parseErr instanceof SyntaxError
+            ? (parseErr as SyntaxError & { rawAttempt?: string }).rawAttempt
+            : null,
         });
 
         if (attempt < MAX_RETRIES) continue;
@@ -440,7 +454,7 @@ async function callOpenAI(prompt: string): Promise<SurveyAiResult> {
       logSection("PARSED JSON", parsed);
 
       // Validate response structure
-      const validation = validateAiResponse(parsed);
+      const validation = validate(parsed);
       if (!validation.valid) {
         lastError = new Error(`Invalid response structure: ${validation.errors.join("; ")}`);
 
@@ -458,10 +472,7 @@ async function callOpenAI(prompt: string): Promise<SurveyAiResult> {
       }
 
       // Success — return clean result
-      const result: SurveyAiResult = {
-        keyInsights: parsed.keyInsights as string[],
-        conclusion: (parsed.conclusion as string).trim(),
-      };
+      const result = transform(parsed);
 
       logSection("FINAL PARSED RESULT", result);
       console.log(`⏱️  Total duration: ${Date.now() - startTime}ms`);
@@ -492,6 +503,232 @@ async function callOpenAI(prompt: string): Promise<SurveyAiResult> {
 
   // Should never reach here
   throw new AppError("AI analysis failed unexpectedly", 500);
+}
+
+// ─── Call OpenAI (whole-report analysis) with retry ─────────────────────
+async function callOpenAI(prompt: string): Promise<SurveyAiResult> {
+  return callOpenAIJson(prompt, validateAiResponse, (parsed) => ({
+    keyInsights: parsed.keyInsights as string[],
+    conclusion: (parsed.conclusion as string).trim(),
+  }));
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// PER-QUESTION QUALITATIVE ANALYSIS
+// ═══════════════════════════════════════════════════════════════════════
+
+/** Questions to analyze — order matches the comparison report sections */
+const QUESTION_DEFS = [
+  { key: "profession", label: "Profesi Responden" },
+  { key: "buyingReason", label: "Alasan Membeli" },
+  { key: "notBuyingReason", label: "Alasan Tidak Membeli" },
+  { key: "package", label: "Paket yang Dibeli" },
+  { key: "favoriteActivity", label: "Aktivitas Favorit" },
+  { key: "memorableImpression", label: "Kesan yang Paling Diingat" },
+  { key: "crewImpression", label: "Crew Impression" },
+];
+
+/**
+ * Build a payload with per-region question data + ALL REGION summary.
+ * Reuses surveyService.getReport() for each region so all calculations
+ * are done by Prisma/SQL — no business logic changes.
+ */
+async function buildQuestionAnalysisPayload(
+  actor: ActorContext,
+  params: { eventId?: string; startDate?: string; endDate?: string }
+): Promise<{
+  questionData: Record<string, { regionName: string; answers: { label: string; percentage: number }[] }[]>;
+  totalSurveys: number;
+  periodStart: string;
+  periodEnd: string;
+}> {
+  // Operational regions (JABAR, JATENG, JATIM) — sorted alphabetically
+  const regions = await prisma.region.findMany({
+    where: { name: excludeLegacyRegionsFilter() },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
+
+  // Fetch per-region reports + ALL REGION report.
+  // Mirrors the comparison page: when an event (venue) is selected, the page
+  // queries with eventId only (no regionId), so we do the same to keep the
+  // AI analysis consistent with the charts the user sees.
+  const regionReports = await Promise.all(
+    regions.map(async (region) => {
+      const report = await surveyService.getReport(actor, {
+        eventId: params.eventId,
+        ...(params.eventId ? {} : { regionId: region.id }),
+        startDate: params.startDate,
+        endDate: params.endDate,
+      });
+      return { regionName: region.name, report };
+    })
+  );
+
+  const allReport = await surveyService.getReport(actor, {
+    eventId: params.eventId,
+    startDate: params.startDate,
+    endDate: params.endDate,
+  });
+
+  if (allReport.totalSurveys === 0) {
+    throw new AppError("No survey data available for the selected filter", 404);
+  }
+
+  // Build per-question data keyed by questionKey
+  const questionData: Record<string, { regionName: string; answers: { label: string; percentage: number }[] }[]> = {};
+
+  for (const q of QUESTION_DEFS) {
+    const entries = regionReports.map((rr) => {
+      const question = rr.report.questions.find((x) => x.questionKey === q.key);
+      const answers =
+        question?.answers
+          .filter((a) => a.count > 0)
+          .map((a) => ({ label: a.label, percentage: a.percentage })) ?? [];
+      return { regionName: rr.regionName, answers };
+    });
+
+    // ALL REGION summary
+    const allQuestion = allReport.questions.find((x) => x.questionKey === q.key);
+    const allAnswers =
+      allQuestion?.answers
+        .filter((a) => a.count > 0)
+        .map((a) => ({ label: a.label, percentage: a.percentage })) ?? [];
+
+    questionData[q.key] = [...entries, { regionName: "ALL REGION", answers: allAnswers }];
+  }
+
+  return {
+    questionData,
+    totalSurveys: allReport.totalSurveys,
+    periodStart: allReport.startDate,
+    periodEnd: allReport.endDate,
+  };
+}
+
+/** Format answers for the prompt */
+function fmtQuestionAnswers(answers: { label: string; percentage: number }[]): string {
+  if (answers.length === 0) return "(tidak ada data)";
+  return answers
+    .map((a) => `${a.label} (${a.percentage}%)`)
+    .join(", ");
+}
+
+/** Build the prompt that generates ALL per-question analyses in one call */
+function buildQuestionPrompt(payload: {
+  questionData: Record<string, { regionName: string; answers: { label: string; percentage: number }[] }[]>;
+  totalSurveys: number;
+  periodStart: string;
+  periodEnd: string;
+}): string {
+  const blocks = QUESTION_DEFS.map((q, idx) => {
+    const entries = payload.questionData[q.key] ?? [];
+    const lines = entries
+      .map((e) => `- ${e.regionName}: ${fmtQuestionAnswers(e.answers)}`)
+      .join("\n");
+    return `PERTANYAAN ${String(idx + 1).padStart(2, "0")}: ${q.label}\n${lines}`;
+  }).join("\n\n");
+
+  return `
+Anda adalah Senior Business Intelligence Analyst yang bertugas membuat analisa kualitatif hasil survey Event SGM Ruang Tumbuh Lebih.
+
+Tugas Anda adalah menganalisis data survey berdasarkan DATA NYATA yang diberikan. Jangan membuat asumsi, opini, atau data yang tidak terdapat pada input.
+
+=========================
+INFORMASI SURVEY
+=========================
+
+Total Survey      : ${payload.totalSurveys}
+Periode Survey    : ${payload.periodStart} sampai ${payload.periodEnd}
+
+Setiap pertanyaan menampilkan distribusi jawaban (persentase) untuk setiap region:
+- Jawa Barat (JABAR)
+- Jawa Tengah (JATENG)
+- Jawa Timur (JATIM)
+- ALL REGION (ringkasan seluruh region)
+
+=========================
+HASIL SURVEY
+=========================
+
+${blocks}
+
+=========================
+TUGAS ANALISIS
+=========================
+
+Untuk SETIAP pertanyaan di atas, tulis analisa kualitatif singkat dengan ketentuan:
+
+1. Maksimal 3 kalimat per pertanyaan.
+2. Singkat, profesional, dan mudah dipahami oleh client.
+3. Kalimat pertama: bandingkan antar region (sebutkan region yang paling menonjol dibanding region lain).
+4. Kalimat terakhir: kesimpulan berdasarkan ALL REGION.
+5. Harus ada insight perbandingan antar region — JANGAN hanya menjelaskan ALL REGION.
+6. Fokus pada insight dan temuan utama, JANGAN mengulang semua angka yang sudah terlihat di data.
+7. Jangan menyebut nama enum, kode database, atau identifier seperti IBU_RUMAH_TANGGA, PAKET_1, dsb. Gunakan label yang natural.
+8. Jika suatu kategori seluruhnya 0 atau tidak ada data, jangan dipaksakan untuk dianalisis.
+9. Gunakan Bahasa Indonesia.
+
+Contoh gaya penulisan yang BAIK:
+"JATENG menunjukkan tingkat pembelian Paket 1 paling tinggi dibanding region lainnya, sedangkan JABAR memiliki proporsi responden yang tidak membeli paling besar. Secara keseluruhan, ALL REGION memperlihatkan bahwa Paket 1 masih menjadi pilihan utama sehingga strategi promosi dapat difokuskan pada paket tersebut."
+
+=========================
+FORMAT OUTPUT (WAJIB)
+=========================
+
+Balas HANYA dengan JSON valid.
+Jangan menggunakan markdown.
+Jangan menggunakan \`\`\`json.
+Jangan memberikan penjelasan di luar JSON.
+
+Format HARUS sama persis seperti berikut (gunakan questionKey sebagai nama properti):
+
+{
+  "profession": "analisa...",
+  "buyingReason": "analisa...",
+  "notBuyingReason": "analisa...",
+  "package": "analisa...",
+  "favoriteActivity": "analisa...",
+  "memorableImpression": "analisa...",
+  "crewImpression": "analisa..."
+}
+
+Setiap nilai HARUS berupa string analisa maksimal 3 kalimat.
+Kembalikan HANYA JSON valid tanpa teks tambahan.
+`;
+}
+
+/**
+ * Validate per-question response — at least one question key must be a
+ * non-empty string. Missing/empty keys are dropped (partial results are
+ * salvaged instead of failing the whole generation).
+ */
+function validateQuestionResponse(parsed: Record<string, unknown>): ValidationResult {
+  const errors: string[] = [];
+  let validCount = 0;
+  for (const q of QUESTION_DEFS) {
+    const val = parsed[q.key];
+    if (typeof val === "string" && val.trim().length > 0) {
+      validCount++;
+    }
+  }
+  if (validCount === 0) {
+    errors.push("At least one question analysis must be a non-empty string");
+  }
+  return { valid: errors.length === 0, errors };
+}
+
+/** Call OpenAI for all per-question analyses in a single request */
+async function callQuestionOpenAI(prompt: string): Promise<Record<string, string>> {
+  const parsed = await callOpenAIJson(prompt, validateQuestionResponse, (p) => p);
+  const result: Record<string, string> = {};
+  for (const q of QUESTION_DEFS) {
+    const val = parsed[q.key];
+    if (typeof val === "string" && val.trim().length > 0) {
+      result[q.key] = val.trim();
+    }
+  }
+  return result;
 }
 
 // ─── Determine scope label ──────────────────────────────────────────────
@@ -568,5 +805,86 @@ export const surveyAiService = {
       anomalies: [],
       generatedBy: actor.id,
     });
+  },
+
+  /**
+   * Get cached per-question AI analyses for the given scope.
+   * When date filters are provided, only analyses generated with the exact
+   * same requested period are returned (avoids showing stale analyses).
+   * Returns an empty array when no matching analyses exist.
+   */
+  async getQuestionAnalyses(
+    actor: ActorContext,
+    params: { eventId?: string; regionId?: string; startDate?: string; endDate?: string }
+  ): Promise<SurveyQuestionAiAnalysis[]> {
+    const scope = determineScope(params);
+    const analyses = await surveyQuestionAiRepository.findByScope({
+      scope,
+      eventId: params.eventId,
+      regionId: params.regionId,
+    });
+
+    // Filter by the exact requested period (YYYY-MM-DD stored as UTC date)
+    return analyses.filter((a) => {
+      const matchStart = !params.startDate
+        ? a.periodStart === null
+        : a.periodStart !== null && a.periodStart.slice(0, 10) === params.startDate;
+      const matchEnd = !params.endDate
+        ? a.periodEnd === null
+        : a.periodEnd !== null && a.periodEnd.slice(0, 10) === params.endDate;
+      return matchStart && matchEnd;
+    });
+  },
+
+  /**
+   * Generate per-question qualitative analyses (ALL questions in one OpenAI call)
+   * and persist them with the actual generation timestamp.
+   * Existing analyses are replaced only after successful generation.
+   */
+  async generateQuestionAnalyses(
+    actor: ActorContext,
+    params: { eventId?: string; startDate?: string; endDate?: string }
+  ): Promise<SurveyQuestionAiAnalysis[]> {
+    const scope: "EVENT" | "REGION" | "ALL" = params.eventId ? "EVENT" : "ALL";
+
+    // Build region comparison payload (JABAR / JATENG / JATIM / ALL REGION)
+    const payload = await buildQuestionAnalysisPayload(actor, {
+      eventId: params.eventId,
+      startDate: params.startDate,
+      endDate: params.endDate,
+    });
+
+    // Build prompt + call OpenAI (with retry)
+    const prompt = buildQuestionPrompt(payload);
+    const result = await callQuestionOpenAI(prompt);
+
+    // Delete existing analyses only after successful AI response
+    await surveyQuestionAiRepository.deleteByScope({
+      scope,
+      eventId: params.eventId,
+    });
+
+    // Persist all per-question analyses with real generation timestamp.
+    // periodStart/periodEnd store the REQUESTED filter period (not data span)
+    // so GET can match analyses to the exact filter that produced them.
+    // Partial results are salvaged — only successfully generated keys persist.
+    const entries = QUESTION_DEFS
+      .filter((q) => result[q.key])
+      .map((q) => ({
+        scope,
+        eventId: params.eventId ?? null,
+        regionId: null,
+        questionKey: q.key,
+        analysis: result[q.key],
+        periodStart: params.startDate ? new Date(params.startDate) : null,
+        periodEnd: params.endDate ? new Date(params.endDate) : null,
+        generatedBy: actor.id,
+      }));
+
+    if (entries.length === 0) {
+      throw new AppError("AI analysis produced no usable results", 500);
+    }
+
+    return surveyQuestionAiRepository.createMany(entries);
   },
 };

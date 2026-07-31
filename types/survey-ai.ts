@@ -42,3 +42,17 @@ export interface SurveyAiQueryParams {
   eventId?: string;
   regionId?: string;
 }
+
+/** Per-question qualitative analysis record from database */
+export interface SurveyQuestionAiAnalysis {
+  id: string;
+  scope: "EVENT" | "REGION" | "ALL";
+  eventId: string | null;
+  regionId: string | null;
+  questionKey: string;
+  analysis: string;
+  periodStart: string | null;
+  periodEnd: string | null;
+  generatedAt: string;
+  generatedBy: string | null;
+}
