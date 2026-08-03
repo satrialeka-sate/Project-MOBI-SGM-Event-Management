@@ -36,6 +36,10 @@ import {
 } from "@/components/GroupedBarChart";
 import { HeatmapTable } from "@/components/HeatmapTable";
 import { CrewProgressCard } from "@/components/CrewProgressCard";
+import { ProfessionDonutGrid } from "@/components/ProfessionDonutGrid";
+import { ActivityPopularityCards } from "@/components/ActivityPopularityCards";
+import { LollipopChart } from "@/components/LollipopChart";
+import { PackageTreemapGrid } from "@/components/PackageTreemapGrid";
 import {
   getRegionColor,
   getRegionShortName,
@@ -50,7 +54,14 @@ const ALL_REGION_NAME = "ALL REGION";
 const CREW_POSITIVE_LABEL = "Menyenangkan dan Ramah";
 
 /* ─── Survey question config ─────────────────────────────────────── */
-type ChartType = "bar" | "heatmap" | "progress";
+type ChartType =
+  | "bar"
+  | "heatmap"
+  | "progress"
+  | "donut"
+  | "popularity"
+  | "lollipop"
+  | "treemap";
 
 const QUESTIONS: {
   key: string;
@@ -66,7 +77,7 @@ const QUESTIONS: {
     icon: Users,
     iconColor: "text-red-500",
     iconBg: "bg-red-50",
-    chart: "bar",
+    chart: "donut",
   },
   {
     key: "notBuyingReason",
@@ -82,7 +93,7 @@ const QUESTIONS: {
     icon: ShoppingBag,
     iconColor: "text-emerald-500",
     iconBg: "bg-emerald-50",
-    chart: "bar",
+    chart: "lollipop",
   },
   {
     key: "package",
@@ -90,7 +101,7 @@ const QUESTIONS: {
     icon: Target,
     iconColor: "text-blue-500",
     iconBg: "bg-blue-50",
-    chart: "bar",
+    chart: "treemap",
   },
   {
     key: "favoriteActivity",
@@ -98,7 +109,7 @@ const QUESTIONS: {
     icon: Activity,
     iconColor: "text-purple-500",
     iconBg: "bg-purple-50",
-    chart: "bar",
+    chart: "popularity",
   },
   {
     key: "memorableImpression",
@@ -774,15 +785,7 @@ export default function SurveyReportV2Page() {
               regions={regions}
             />
 
-            {/* ── 4. AI GENERATION TOOLBAR ── */}
-            <AiGenerationBar
-              canGenerateAi={canGenerateAi}
-              isGeneratingAi={isGeneratingAi}
-              hasAnyAnalysis={Object.keys(analysisByQuestion).length > 0}
-              handleGenerateAi={handleGenerateAi}
-            />
-
-            {/* ── 5. QUESTION SECTIONS ── */}
+            {/* ── 4. QUESTION SECTIONS ── */}
             {isReportLoading ? (
               <div className="space-y-4">
                 {[1, 2, 3, 4, 5, 6, 7].map((i) => (
@@ -825,6 +828,22 @@ export default function SurveyReportV2Page() {
                         />
                       )}
 
+                      {q.chart === "donut" && (
+                        <ProfessionDonutGrid regionsData={regionsData} />
+                      )}
+
+                      {q.chart === "popularity" && (
+                        <ActivityPopularityCards regionsData={regionsData} />
+                      )}
+
+                      {q.chart === "lollipop" && (
+                        <LollipopChart regionsData={regionsData} />
+                      )}
+
+                      {q.chart === "treemap" && (
+                        <PackageTreemapGrid regionsData={regionsData} />
+                      )}
+
                       {q.chart === "bar" && (
                         <GroupedBarChart
                           data={buildComparisonData(regionsData)}
@@ -842,6 +861,14 @@ export default function SurveyReportV2Page() {
                 })}
               </div>
             )}
+
+            {/* ── 5. AI GENERATION TOOLBAR — moved to bottom */}
+            <AiGenerationBar
+              canGenerateAi={canGenerateAi}
+              isGeneratingAi={isGeneratingAi}
+              hasAnyAnalysis={Object.keys(analysisByQuestion).length > 0}
+              handleGenerateAi={handleGenerateAi}
+            />
           </div>
         )}
       </main>
