@@ -316,10 +316,6 @@ function PageHeader() {
         <h1 className="text-center text-[22px] font-extrabold text-[#111827] leading-[1.1] whitespace-nowrap w-fit mx-auto sm:text-2xl md:text-[40px] lg:text-5xl">
           Survey Results Comparison
         </h1>
-
-        <p className="mt-1 text-center text-xs text-gray-500 md:text-sm">
-          Perbandingan hasil survey berdasarkan region
-        </p>
       </div>
     </div>
   );
