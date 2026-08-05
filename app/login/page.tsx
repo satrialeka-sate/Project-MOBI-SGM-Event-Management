@@ -18,12 +18,12 @@ function LoginForm() {
   const [clientError, setClientError] = useState<string | null>(null);
 
   const errorMessages: Record<string, string> = {
-    EmailNotFound: "Akun email tidak terdaftar. Hubungi administrator.",
+    EmailNotFound: "Email ini belum terdaftar.",
     AccountDisabled: "Akun Anda telah dinonaktifkan. Hubungi administrator.",
     AccessDenied: "Akses ditolak. Hubungi administrator.",
     OAuthSignIn: "Terjadi kesalahan saat masuk dengan Google. Coba lagi.",
     CredentialsSignIn: "Email/Username atau password salah.",
-    PendingApproval: "Akun Anda masih menunggu persetujuan ADMIN PO.",
+    PendingApproval: "Akun Anda belum disetujui oleh Admin.",
     Rejected: "Pendaftaran Anda telah ditolak. Hubungi administrator.",
     default: "Terjadi kesalahan. Silakan coba lagi.",
   };

@@ -78,6 +78,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           scope: true,
           regionId: true,
           isActive: true,
+          status: true,
           googleId: true,
         },
       });
@@ -87,6 +88,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       // Reject if account is disabled
       if (!user.isActive) return "/login?error=AccountDisabled";
+
+      // Reject if account is still pending approval or rejected
+      if (user.status === UserStatus.PENDING) {
+        return "/login?error=PendingApproval";
+      }
+      if (user.status === UserStatus.REJECTED) {
+        return "/login?error=Rejected";
+      }
 
       // Update googleId, image, and lastLoginAt on every successful login
       const updateData: Record<string, unknown> = {
