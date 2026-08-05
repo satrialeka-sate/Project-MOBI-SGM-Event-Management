@@ -120,6 +120,8 @@ const QUESTIONS: QuestionDef[] = [
 
 function computeStats(surveys: any[], question: QuestionDef): QuestionStat {
   const total = surveys.length;
+  // Count how many respondents actually answered this question (non-null)
+  const answeredTotal = surveys.filter((s) => s[question.field] !== null && s[question.field] !== undefined).length;
   const countMap: Record<string, number> = {};
 
   // Initialize all options with 0
@@ -140,7 +142,17 @@ function computeStats(surveys: any[], question: QuestionDef): QuestionStat {
       label: question.labels[value] || value,
       value,
       count,
-      percentage: total > 0 ? Math.round((count / total) * 100) : 0,
+      // Use question-specific denominator for percentage: for crewImpression use only
+      // respondents who answered that question (answeredTotal). For other questions
+      // keep the existing behaviour (total surveys) to avoid unintended side-effects.
+      percentage:
+        question.key === "crewImpression"
+          ? answeredTotal > 0
+            ? Math.round((count / answeredTotal) * 100)
+            : 0
+          : total > 0
+          ? Math.round((count / total) * 100)
+          : 0,
     }))
     .sort((a, b) => b.count - a.count);
 

@@ -821,6 +821,7 @@ export default function SurveyReportV2Page() {
                         <CrewProgressCard
                           regionsData={regionsData}
                           positiveLabel={CREW_POSITIVE_LABEL}
+                          allSurveysCount={allRegionReport?.totalSurveys}
                         />
                       )}
 

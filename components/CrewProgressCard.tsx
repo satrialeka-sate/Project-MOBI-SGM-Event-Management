@@ -22,10 +22,13 @@ import {
 export function CrewProgressCard({
   regionsData,
   positiveLabel,
+  allSurveysCount,
 }: {
   regionsData: RegionAnswerData[];
   /** The label treated as the positive outcome (e.g. "Menyenangkan dan Ramah") */
   positiveLabel: string;
+  /** Optional: total surveys in ALL REGION scope (used for "X dari Y responden" caption) */
+  allSurveysCount?: number;
 }) {
   const hasAny = hasAnyData(regionsData);
 
@@ -54,6 +57,12 @@ export function CrewProgressCard({
       pct,
     };
   });
+
+  // Compute total respondents who answered Q7 for ALL REGION (if present)
+  const allRegion = regionsData.find((r) => r.regionName === "ALL REGION");
+  const totalAnsweredAll = allRegion
+    ? allRegion.answers.reduce((s, a) => s + a.count, 0)
+    : regionsData.reduce((s, r) => s + r.answers.reduce((ss, a) => ss + a.count, 0), 0);
 
   return (
     <div className="space-y-3.5">
@@ -91,6 +100,16 @@ export function CrewProgressCard({
           </div>
         ))}
       </div>
+        {/* Caption: either contextual counts or a generic note */}
+        <div className="mt-2 text-xs text-gray-400">
+          {allSurveysCount && totalAnsweredAll ? (
+            <>
+              {totalAnsweredAll} dari {allSurveysCount} responden memberikan penilaian terhadap kru event.
+            </>
+          ) : (
+            "Persentase dihitung dari responden yang memberikan penilaian terhadap kru event."
+          )}
+        </div>
     </div>
   );
 }
