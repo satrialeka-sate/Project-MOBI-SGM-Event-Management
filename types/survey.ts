@@ -50,7 +50,7 @@ export interface CreateSurveyInput {
   package: SurveyPackage;
   favoriteActivity: SurveyFavoriteActivity;
   memorableImpression: SurveyMemorableImpression;
-  crewImpression?: SurveyCrewImpression | null;
+  crewImpression: SurveyCrewImpression;
 }
 
 /** Input for creating an aggregate (legacy import) survey */

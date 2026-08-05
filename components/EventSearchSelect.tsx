@@ -7,9 +7,10 @@ import { Loader2, Search, Check, ChevronDown } from "lucide-react";
 interface EventSearchSelectProps {
   value: string;
   onChange: (eventId: string) => void;
+  inputClassName?: string;
 }
 
-export default function EventSearchSelect({ value, onChange }: EventSearchSelectProps) {
+export default function EventSearchSelect({ value, onChange, inputClassName }: EventSearchSelectProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -147,7 +148,7 @@ export default function EventSearchSelect({ value, onChange }: EventSearchSelect
             }
           }}
           onKeyDown={handleKeyDown}
-          className="h-11 w-full rounded-xl border border-gray-300 bg-white pl-10 pr-10 text-sm outline-none transition-colors placeholder:text-gray-400 focus:border-sgm-red focus:ring-2 focus:ring-sgm-red-light"
+          className={`h-11 w-full rounded-xl border border-gray-300 bg-white pl-10 pr-10 text-sm outline-none transition-colors placeholder:text-gray-400 focus:border-sgm-red focus:ring-2 focus:ring-sgm-red-light ${inputClassName ?? ""}`}
         />
         <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
       </div>

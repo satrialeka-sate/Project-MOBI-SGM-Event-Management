@@ -54,7 +54,39 @@ export default function NewSurveyPage() {
   const [memorableImpression, setMemorableImpression] = useState("");
   const [crewImpression, setCrewImpression] = useState("");
   const [submitError, setSubmitError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+
+    if (!selectedEventId) {
+      errors.eventId = "Pilih event sebelum mengirim survey.";
+    }
+    if (!profession) {
+      errors.profession = "Jawaban wajib dipilih untuk pertanyaan ini.";
+    }
+    if (!notBuyingReason) {
+      errors.notBuyingReason = "Jawaban wajib dipilih untuk pertanyaan ini.";
+    }
+    if (!buyingReason) {
+      errors.buyingReason = "Jawaban wajib dipilih untuk pertanyaan ini.";
+    }
+    if (!selectedPackage) {
+      errors.package = "Jawaban wajib dipilih untuk pertanyaan ini.";
+    }
+    if (!favoriteActivity) {
+      errors.favoriteActivity = "Jawaban wajib dipilih untuk pertanyaan ini.";
+    }
+    if (!memorableImpression) {
+      errors.memorableImpression = "Jawaban wajib dipilih untuk pertanyaan ini.";
+    }
+    if (!crewImpression) {
+      errors.crewImpression = "Jawaban wajib dipilih untuk pertanyaan ini.";
+    }
+
+    setFieldErrors(errors);
+    return errors;
+  };
 
   useEffect(() => {
     if (authStatus === "unauthenticated") {
@@ -81,10 +113,16 @@ export default function NewSurveyPage() {
     buyingReason &&
     selectedPackage &&
     favoriteActivity &&
-    memorableImpression;
+    memorableImpression &&
+    crewImpression;
 
   async function handleSubmit() {
-    if (!isFormValid) return;
+    const errors = validateForm();
+    if (Object.keys(errors).length > 0) {
+      setSubmitError("Mohon lengkapi seluruh pertanyaan sebelum mengirim survey.");
+      return;
+    }
+
     setSubmitError("");
 
     try {
@@ -172,82 +210,139 @@ export default function NewSurveyPage() {
           className="space-y-6"
         >
           {/* Event Selection */}
-          <FormSection title="Pilih Event">
+          <FormSection
+            title="Pilih Event"
+            invalid={Boolean(fieldErrors.eventId)}
+            errorMessage={fieldErrors.eventId}
+          >
             <div className="space-y-2">
               <Label>Event (Venue)</Label>
               <EventSearchSelect
                 value={selectedEventId}
-                onChange={setSelectedEventId}
+                onChange={(value) => {
+                  setSelectedEventId(value);
+                  setFieldErrors((prev) => ({ ...prev, eventId: "" }));
+                }}
+                inputClassName={fieldErrors.eventId ? "border-red-500 ring-1 ring-red-200" : ""}
               />
             </div>
           </FormSection>
 
           {/* Question 1 */}
-          <FormSection title="1. Apakah Profesi Bunda?">
+          <FormSection
+            title="1. Apakah Profesi Bunda?"
+            invalid={Boolean(fieldErrors.profession)}
+            errorMessage={fieldErrors.profession}
+          >
             <RadioGroup
               options={PROFESSION_OPTIONS}
               value={profession}
-              onChange={setProfession}
+              onChange={(value) => {
+                setProfession(value);
+                setFieldErrors((prev) => ({ ...prev, profession: "" }));
+              }}
               name="profession"
             />
           </FormSection>
 
           {/* Question 2 */}
-          <FormSection title="2. Jika tidak membeli, apa alasan Bunda?">
+          <FormSection
+            title="2. Jika tidak membeli, apa alasan Bunda?"
+            invalid={Boolean(fieldErrors.notBuyingReason)}
+            errorMessage={fieldErrors.notBuyingReason}
+          >
             <RadioGroup
               options={NOT_BUYING_REASON_OPTIONS}
               value={notBuyingReason}
-              onChange={setNotBuyingReason}
+              onChange={(value) => {
+                setNotBuyingReason(value);
+                setFieldErrors((prev) => ({ ...prev, notBuyingReason: "" }));
+              }}
               name="notBuyingReason"
             />
           </FormSection>
 
           {/* Question 3 */}
-          <FormSection title="3. Apa yang membuat Bunda membeli produk SGM Eksplor?">
+          <FormSection
+            title="3. Apa yang membuat Bunda membeli produk SGM Eksplor?"
+            invalid={Boolean(fieldErrors.buyingReason)}
+            errorMessage={fieldErrors.buyingReason}
+          >
             <RadioGroup
               options={BUYING_REASON_OPTIONS}
               value={buyingReason}
-              onChange={setBuyingReason}
+              onChange={(value) => {
+                setBuyingReason(value);
+                setFieldErrors((prev) => ({ ...prev, buyingReason: "" }));
+              }}
               name="buyingReason"
             />
           </FormSection>
 
           {/* Question 4 */}
-          <FormSection title="4. Paket yang Bunda beli di acara ini">
+          <FormSection
+            title="4. Paket yang Bunda beli di acara ini"
+            invalid={Boolean(fieldErrors.package)}
+            errorMessage={fieldErrors.package}
+          >
             <RadioGroup
               options={PACKAGE_OPTIONS}
               value={selectedPackage}
-              onChange={setSelectedPackage}
+              onChange={(value) => {
+                setSelectedPackage(value);
+                setFieldErrors((prev) => ({ ...prev, package: "" }));
+              }}
               name="package"
             />
           </FormSection>
 
           {/* Question 5 */}
-          <FormSection title="5. Aktivitas apa yang paling disukai selama event?">
+          <FormSection
+            title="5. Aktivitas apa yang paling disukai selama event?"
+            invalid={Boolean(fieldErrors.favoriteActivity)}
+            errorMessage={fieldErrors.favoriteActivity}
+          >
             <RadioGroup
               options={FAVORITE_ACTIVITY_OPTIONS}
               value={favoriteActivity}
-              onChange={setFavoriteActivity}
+              onChange={(value) => {
+                setFavoriteActivity(value);
+                setFieldErrors((prev) => ({ ...prev, favoriteActivity: "" }));
+              }}
               name="favoriteActivity"
             />
           </FormSection>
 
           {/* Question 6 */}
-          <FormSection title="6. Kesan yang paling diingat dari Event SGM Ruang Tumbuh Lebih">
+          <FormSection
+            title="6. Kesan yang paling diingat dari Event SGM Ruang Tumbuh Lebih"
+            invalid={Boolean(fieldErrors.memorableImpression)}
+            errorMessage={fieldErrors.memorableImpression}
+          >
             <RadioGroup
               options={MEMORABLE_IMPRESSION_OPTIONS}
               value={memorableImpression}
-              onChange={setMemorableImpression}
+              onChange={(value) => {
+                setMemorableImpression(value);
+                setFieldErrors((prev) => ({ ...prev, memorableImpression: "" }));
+              }}
               name="memorableImpression"
             />
           </FormSection>
 
           {/* Question 7 */}
-          <FormSection title="7. Bagaimana kesan Bunda terhadap Kru (Man Power) Event?">
+          <FormSection
+            title="7. Bagaimana kesan Bunda terhadap Kru (Man Power) Event?"
+            invalid={Boolean(fieldErrors.crewImpression)}
+            errorMessage={fieldErrors.crewImpression}
+          >
             <RadioGroup
               options={CREW_IMPRESSION_OPTIONS}
               value={crewImpression}
-              onChange={setCrewImpression}
+              onChange={(value) => {
+                setCrewImpression(value);
+                setFieldErrors((prev) => ({ ...prev, crewImpression: "" }));
+              }}
               name="crewImpression"
             />
           </FormSection>

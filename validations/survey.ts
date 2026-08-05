@@ -58,7 +58,7 @@ export const createSurveySchema = z.object({
   package: surveyPackageSchema,
   favoriteActivity: surveyFavoriteActivitySchema,
   memorableImpression: surveyMemorableImpressionSchema,
-  crewImpression: surveyCrewImpressionSchema.nullable().optional(),
+  crewImpression: surveyCrewImpressionSchema,
 });
 
 export const surveyQuerySchema = z.object({
