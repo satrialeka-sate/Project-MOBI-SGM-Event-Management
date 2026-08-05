@@ -144,11 +144,12 @@ function computeStats(surveys: any[], question: QuestionDef): QuestionStat {
       count,
       // Use question-specific denominator for percentage: for crewImpression use only
       // respondents who answered that question (answeredTotal). For other questions
-      // keep the existing behaviour (total surveys) to avoid unintended side-effects.
+      // keep the existing behaviour (total surveys). Store percentage with one
+      // decimal place for crewImpression to improve display precision.
       percentage:
         question.key === "crewImpression"
           ? answeredTotal > 0
-            ? Math.round((count / answeredTotal) * 100)
+            ? Number(((count / answeredTotal) * 100).toFixed(1))
             : 0
           : total > 0
           ? Math.round((count / total) * 100)

@@ -633,8 +633,8 @@ function MemorableImpressionChart({ answers }: { answers: AnswerStat[] }) {
 
 // ─── 7. Crew Impression (Horizontal Bar) ──────────────────────────────
 function formatPercentage(pct: number, count: number): string {
-  if (pct === 0 && count > 0) return "<1%";
-  return `${pct}%`;
+  // Always show one decimal place for Crew Impression percentages.
+  return `${Number(pct).toFixed(1)}%`;
 }
 
 function CrewImpressionChart({ answers }: { answers: AnswerStat[] }) {

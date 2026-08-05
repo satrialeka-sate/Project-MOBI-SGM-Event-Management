@@ -47,7 +47,7 @@ export function CrewProgressCard({
     const total = rd.answers.reduce((s, a) => s + a.count, 0);
     const positive = rd.answers.find((a) => a.label === positiveLabel);
     const count = positive?.count ?? 0;
-    const pct = total > 0 ? (count / total) * 100 : 0;
+    const pct = total > 0 ? Number(((count / total) * 100).toFixed(1)) : 0;
     return {
       regionName: rd.regionName,
       shortName: getRegionShortName(rd.regionName),
@@ -92,9 +92,9 @@ export function CrewProgressCard({
               />
             </div>
             <span className="min-w-[130px] shrink-0 whitespace-nowrap text-right text-[13px] font-bold tabular-nums text-gray-800 sm:min-w-[150px] sm:text-sm">
-              {Math.round(row.pct)}%
+              {Number(row.pct).toFixed(1)}%
               <span className="ml-1 text-[13px] font-medium text-gray-400 sm:text-sm">
-                ({row.count}/{row.total})
+                ({row.count})
               </span>
             </span>
           </div>
